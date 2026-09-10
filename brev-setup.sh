@@ -293,6 +293,19 @@ if [ "$PREBUILD_IMAGE" = "1" ]; then
   fi
 fi
 
+# release/0.2.1 base image lacks pandas, which isaaclab_arena_gr00t/lerobot/convert_hdf5_to_lerobot.py imports.
+# Bake it into the image (docker commit) so the conversion works in the plain base container.
+if [ -n "$(docker images -q isaaclab_arena:latest 2>/dev/null)" ] && \
+   ! docker run --rm isaaclab_arena:latest /isaac-sim/python.sh -c "import pandas" >/dev/null 2>&1; then
+  log "Adding pandas to isaaclab_arena:latest (needed by convert_hdf5_to_lerobot.py) ..."
+  docker rm -f arena-pandas-fix >/dev/null 2>&1 || true
+  docker run -d --name arena-pandas-fix isaaclab_arena:latest sleep 600 >/dev/null \
+    && docker exec arena-pandas-fix /isaac-sim/python.sh -m pip install -q pandas >>"$LOG" 2>&1 \
+    && docker commit arena-pandas-fix isaaclab_arena:latest >/dev/null \
+    && log "pandas baked into isaaclab_arena:latest" || log "WARN: could not add pandas to the image"
+  docker rm -f arena-pandas-fix >/dev/null 2>&1 || true
+fi
+
 # ------------------------- 9b. Unitree G1 static apple-to-plate workflow staging
 # Mirrors IsaacLab-Arena docs/pages/example_workflows/static_apple (release/0.2.1):
 # dataset + pre-trained checkpoint from Hugging Face, GR00T N1.7 server / finetune helpers.
