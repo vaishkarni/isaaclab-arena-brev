@@ -17,9 +17,9 @@ git clone -q https://github.com/vaishkarni/isaaclab-arena-brev.git "$HOME/isaacl
 sudo -E bash "$HOME/isaaclab-arena-brev/brev-setup.sh"
 ```
 
-Launch parameters (all optional except the first): `VNC_PASSWORD`, `PREBUILD_IMAGE` (1),
+Launch parameters (all optional except `VNC_PASSWORD` and `HF_TOKEN`): `VNC_PASSWORD`, `PREBUILD_IMAGE` (1),
 `INSTALL_GROOT` (0), `NOVNC_TLS` (0), `ARENA_BRANCH` (release/0.2.1), `G1_WORKFLOW` (1),
-`HF_TOKEN` (organizer's token, secret; used only at build time to pre-cache the gated `nvidia/Cosmos-Reason2-2B` backbone, then deleted from the node, so participants never log in), `PRECACHE_MODELS` (1), `DOWNLOAD_DATASET` (1), `DOWNLOAD_CHECKPOINT` (1). Secure Link `desktop` on port 6080.
+`HF_TOKEN` (deployer's own HF read token, secret; account must have accepted the gated `nvidia/Cosmos-Reason2-2B` license; the script logs the node in and pre-caches the backbone so no later step needs a login), `PRECACHE_MODELS` (1), `KEEP_HF_TOKEN` (1), `DOWNLOAD_DATASET` (1), `DOWNLOAD_CHECKPOINT` (1). Secure Link `desktop` on port 6080.
 Hardware: L40S / RTX PRO 6000 class GPU with RT cores, 128 GiB RAM, 300 GiB disk.
 
 ## Use on an existing VM

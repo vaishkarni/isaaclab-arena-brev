@@ -48,7 +48,7 @@ Add these; participants see them on the Deploy page.
 | NOVNC_TLS | choice 0 / 1 | no | 0 | keep 0 behind the Secure Link |
 | ARENA_BRANCH | text | no | release/0.2.1 | pin |
 | G1_WORKFLOW | choice 1 / 0 | no | 1 | stage the G1 apple-to-plate helpers |
-| HF_TOKEN | text (secret) | no | empty | YOUR token (account that accepted the Cosmos-Reason2-2B license); used at build time to pre-cache the gated backbone, then deleted from the node. Without it participants must `hf auth login` |
+| HF_TOKEN | text (secret) | yes | none | participant's own HF read token (account that accepted the Cosmos-Reason2-2B license). The script logs the node in and pre-caches the gated backbone |
 | PRECACHE_MODELS | choice 1 / 0 | no | 1 | cache GR00T-N1.7-3B + backbone so training/serving never touch the hub |
 | DOWNLOAD_DATASET | choice 1 / 0 | no | 1 | 10 GB HF dataset for the LeRobot export lesson |
 | DOWNLOAD_CHECKPOINT | choice 1 / 0 | no | 1 | 13 GB tuned checkpoint for the eval lesson |

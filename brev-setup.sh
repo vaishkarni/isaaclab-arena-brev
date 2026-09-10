@@ -23,16 +23,17 @@
 #   TARGET_USER     login user that owns the desktop    [auto: ubuntu/shadeform/first /home]
 #   G1_WORKFLOW     1 = stage the Unitree G1 static apple-to-plate workflow (dataset,
 #                   pre-trained checkpoint, GR00T N1.7 server/finetune helpers)  [1]
-#   HF_TOKEN        ORGANIZER's Hugging Face token (mark as secret in Brev). Used only at build time
-#                   to pre-cache the gated backbone nvidia/Cosmos-Reason2-2B that every GR00T N1.7
-#                   model loads; the token file is deleted afterwards so participants never log in.
-#                   The organizer account must have accepted that repo's license (auto-approved).
+#   HF_TOKEN        Hugging Face read token of the person deploying (mark as secret in Brev).
+#                   Written to ~/.cache/huggingface/token (same as `hf auth login`) and used to
+#                   pre-cache the gated backbone nvidia/Cosmos-Reason2-2B that every GR00T N1.7
+#                   model loads. The account must have accepted that repo's license (auto-approved).
 #                   Dataset, tuned checkpoint and base model are public.  [empty = skip backbone]
 #   DOWNLOAD_DATASET     1 = fetch nvidia/Arena-G1-Static-PickNPlace-Task (~10 GB, incl. LeRobot) [1]
 #   DOWNLOAD_CHECKPOINT  1 = fetch nvidia/GN1x-Tuned-Arena-G1-Static-PickNPlace (~13 GB, weights only) [1]
 #   PRECACHE_MODELS      1 = pre-cache nvidia/GR00T-N1.7-3B (~7 GB, public) and, with HF_TOKEN,
 #                        nvidia/Cosmos-Reason2-2B (~5 GB, gated) in ~/.cache/huggingface  [1]
-#   KEEP_HF_TOKEN        1 = leave the token file on the node (default 0 = delete after caching) [0]
+#   KEEP_HF_TOKEN        1 = leave the token file on the node so `hf` keeps working (participant's own
+#                        token); 0 = delete it after caching (organizer-supplied token)  [1]
 # =============================================================================
 set -euo pipefail
 
@@ -252,10 +253,10 @@ if [ "$G1_WORKFLOW" = "1" ]; then
   as_user "mkdir -p '$DS_DIR' '$MD_DIR'"
   HF="cd ~/Isaac-GR00T && export PATH=\$HOME/.local/bin:\$PATH && uv run --no-sync hf"
 
-  # Organizer's Hugging Face token (token file, same thing `hf auth login` writes); removed again below
+  # Hugging Face token (token file, same thing `hf auth login` writes)
   if [ -n "${HF_TOKEN:-}" ]; then
     as_user "mkdir -p ~/.cache/huggingface && umask 077 && printf '%s' '$HF_TOKEN' > ~/.cache/huggingface/token"
-    as_user "$HF auth whoami" >>"$LOG" 2>&1 && log "Hugging Face login OK (build-time only)" || log "WARN: HF_TOKEN rejected by huggingface.co"
+    as_user "$HF auth whoami" >>"$LOG" 2>&1 && log "Hugging Face login OK" || log "WARN: HF_TOKEN rejected by huggingface.co"
   else
     log "No HF_TOKEN given: the gated backbone nvidia/Cosmos-Reason2-2B cannot be pre-cached; GR00T server/finetune will need 'hf auth login' on the node"
   fi
@@ -294,8 +295,8 @@ if [ "$G1_WORKFLOW" = "1" ]; then
       fi
     fi
   fi
-  # Do not leave the organizer's token on a node participants have root on
-  if [ -n "${HF_TOKEN:-}" ] && [ "${KEEP_HF_TOKEN:-0}" != "1" ]; then
+  # Optional: remove the token after caching (use when the organizer supplied it, not the participant)
+  if [ -n "${HF_TOKEN:-}" ] && [ "${KEEP_HF_TOKEN:-1}" = "0" ]; then
     as_user "rm -f ~/.cache/huggingface/token ~/.huggingface/token" && log "HF token file removed"
   fi
 
@@ -388,7 +389,10 @@ Headless test: python -m pytest isaaclab_arena/tests/test_g1_static_pick_and_pla
 
 ## Unitree G1 apple-to-plate: GR00T N1.7 training + evaluation (see WORKSHOP-G1.md)
 
-No Hugging Face login needed: dataset, checkpoint, base model and the gated backbone are already cached on this node.
+Hugging Face: the HF_TOKEN you entered at deploy time is already logged in on this node and the
+gated backbone nvidia/Cosmos-Reason2-2B is cached (check: ls ~/.cache/huggingface/hub). If you
+deployed without a token: accept https://huggingface.co/nvidia/Cosmos-Reason2-2B, then
+    cd ~/Isaac-GR00T && uv run --no-sync hf auth login && uv run --no-sync hf download nvidia/Cosmos-Reason2-2B
 
     ~/run_gr00t_server.sh                      # host, terminal 2: serves the pre-trained checkpoint, wait for "Server Ready"
     ~/run_g1_apple_client.sh 5                 # host, terminal 3: G1 does the task in the Isaac Lab window, prints success_rate

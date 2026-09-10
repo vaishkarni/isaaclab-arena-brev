@@ -14,12 +14,26 @@ password from the organizer. You get a Linux desktop. Open a terminal: Applicati
 Every command below runs in a terminal on this desktop unless it says otherwise. You will use
 three terminals; open them as tabs.
 
-## 1. Nothing to log in to
+## 1. Before you deploy: Hugging Face token (5 min, once)
 
-Everything the workflow downloads from Hugging Face is already on your node: the dataset and the
-tuned checkpoint (public), the GR00T-N1.7-3B base model (public) and the Cosmos-Reason2-2B backbone
-(gated; the organizer cached it at build time). You do not need a Hugging Face account or token.
-Check with `ls ~/.cache/huggingface/hub` (two `models--nvidia--...` folders).
+GR00T N1.7 loads the gated backbone `nvidia/Cosmos-Reason2-2B`. The dataset, the tuned checkpoint
+and the base model are public, but that one repo needs a Hugging Face account that accepted its
+license (auto-approved, no waiting).
+
+1. Sign in at https://huggingface.co (create a free account if needed).
+2. Open https://huggingface.co/nvidia/Cosmos-Reason2-2B and accept the license.
+3. https://huggingface.co/settings/tokens -> New token, type Read, copy it.
+4. On the Brev deploy page paste it into the `HF_TOKEN` field (next to `VNC_PASSWORD`), then Deploy.
+
+The setup script logs your node in with it and caches the backbone and base model, so no command
+in this sheet asks for a login. Check after the build: `ls ~/.cache/huggingface/hub` shows
+`models--nvidia--Cosmos-Reason2-2B` and `models--nvidia--GR00T-N1.7-3B`.
+
+If you forgot the token at deploy time:
+
+```bash
+cd ~/Isaac-GR00T && uv run --no-sync hf auth login && uv run --no-sync hf download nvidia/Cosmos-Reason2-2B
+```
 
 ## 2. Validate the environment (5 min) — terminal 1
 
@@ -133,7 +147,7 @@ Each helper is a few lines; `cat` it to see the exact docs command it runs.
 
 | Symptom | Fix |
 |---|---|
-| `401` / gated repo error from the server or finetune | The backbone cache is missing (`ls ~/.cache/huggingface/hub`). Ask the organizer; as a stopgap `export HF_HUB_OFFLINE=1` before the helper if the folder exists. |
+| `401` / gated repo error from the server or finetune | Token missing or license not accepted: redo step 1 with the `hf auth login` fallback. |
 | `Invalid action shape, expected: 23, received: 50` | Client embodiment must be `g1_wbc_agile_joint` (the helper already does this). |
 | `Action key 'left_arm''s horizon must be 40` | Server modality config and checkpoint disagree; use the same `--modality-config-path` for training and serving (the helpers do). |
 | No Isaac Lab window | Inside the container `echo $DISPLAY` must print `:0`. Start the container from a desktop terminal, not from SSH. |

@@ -21,10 +21,11 @@ workflow. Everything below assumes the node was deployed from the launchable wit
 1. A Hugging Face account that has **accepted the license of `nvidia/Cosmos-Reason2-2B`**
    (gated). Every GR00T N1.7 checkpoint loads this backbone, so the server and the finetune both
    need it. Dataset and the tuned checkpoint are public.
-2. A read token from that account, passed as the `HF_TOKEN` launch parameter (mark secret).
-   The script uses it once to pre-cache the backbone (and the public GR00T-N1.7-3B base model)
-   in `~/.cache/huggingface`, then deletes the token file. Participants never log in to HF.
-   Without it the script still builds everything else and logs a warning.
+2. Each participant brings their own read token and enters it as the `HF_TOKEN` launch parameter
+   (secret) on the deploy page; tell them to accept the Cosmos-Reason2-2B license beforehand
+   (WORKSHOP-G1.md step 1). The script logs the node in and pre-caches the backbone plus the
+   public GR00T-N1.7-3B base model in `~/.cache/huggingface`. Without a token the script still
+   builds everything else and logs a warning.
 3. GPU with 48 GB or more for finetuning (docs validated on RTX 6000 Ada; RTX PRO 6000 works).
    Disk 300 GB or more: image 27 GB, dataset 10 GB, checkpoint 13 GB, base model 7 GB, finetune output up to 5 x 15 GB.
 
