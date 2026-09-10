@@ -311,6 +311,8 @@ EOF
 # Docs: 20000 steps take ~2-3 h on an RTX 6000 Ada; checkpoints land in <output_dir>/checkpoint-<step>.
 export PATH=$HOME/.local/bin:$PATH
 STEPS=${1:-20000}
+# save at least once: a 1000-step live run must still leave a checkpoint-1000 to evaluate
+SAVE=$(( STEPS < 5000 ? STEPS : 5000 ))
 DATASET_DIR=$HOME/datasets/isaaclab_arena/static_apple_tutorial
 MODELS_DIR=$HOME/models/isaaclab_arena/static_apple_tutorial
 OUT=${2:-$MODELS_DIR/static_apple_n17_finetune}
@@ -323,7 +325,7 @@ exec uv run --no-sync python -m torch.distributed.run --nproc_per_node=1 --stand
   --modality-config-path $HOME/IsaacLab-Arena/isaaclab_arena_gr00t/embodiments/g1/g1_sim_wbc_data_gr00t_n_1_7_config.py \
   --embodiment-tag new_embodiment \
   --global-batch-size 12 --max-steps "$STEPS" --num-gpus 1 \
-  --save-steps 5000 --save-total-limit 5 \
+  --save-steps "$SAVE" --save-total-limit 5 \
   --no-tune-llm --tune-visual --tune-projector --tune-diffusion-model \
   --dataloader-num-workers 8 \
   --color-jitter-params brightness 0.3 contrast 0.4 saturation 0.5 hue 0.08
@@ -355,7 +357,23 @@ Then, inside the container (runner options before the environment name, environm
 The Isaac Lab window opens on this desktop (3-5 min on first launch). Ctrl-C in the terminal stops it.
 Headless test: python -m pytest isaaclab_arena/tests/test_g1_static_pick_and_place.py -v
 
+## Unitree G1 apple-to-plate: GR00T N1.7 training + evaluation (see WORKSHOP-G1.md)
+
+Prereq once per person: accept the license at https://huggingface.co/nvidia/Cosmos-Reason2-2B, then
+    cd ~/Isaac-GR00T && uv run --no-sync hf auth login
+
+    ~/run_gr00t_server.sh                      # host, terminal 2: serves the pre-trained checkpoint, wait for "Server Ready"
+    ~/run_g1_apple_client.sh 5                 # host, terminal 3: G1 does the task in the Isaac Lab window, prints success_rate
+    ~/run_g1_finetune.sh 1000 ~/models/isaaclab_arena/static_apple_tutorial/my_finetune   # stop the server first (Ctrl-C)
+    ~/run_gr00t_server.sh ~/models/isaaclab_arena/static_apple_tutorial/my_finetune/checkpoint-1000
+    ~/run_g1_apple_client.sh 5 /models/isaaclab_arena/static_apple_tutorial/my_finetune/checkpoint-1000
+
+Dataset (200 demos, HDF5 + LeRobot): ~/datasets/isaaclab_arena/static_apple_tutorial
+Pre-trained checkpoint:              ~/models/isaaclab_arena/static_apple_tutorial/gn1x_tuned_static_apple
+
 Housekeeping: ~/start-desktop.sh / ~/stop-desktop.sh, service gpu-desktop, log $LOG
 EOF
 chown "$TARGET_USER:$TARGET_USER" "$TARGET_HOME/WORKSHOP.md"; chmod 600 "$TARGET_HOME/WORKSHOP.md"
+KIT_DIR="$(cd "$(dirname "$0")" && pwd)"
+[ -f "$KIT_DIR/WORKSHOP-G1.md" ] && install -o "$TARGET_USER" -g "$TARGET_USER" -m 644 "$KIT_DIR/WORKSHOP-G1.md" "$TARGET_HOME/WORKSHOP-G1.md"
 log "=== DONE. Attendee instructions in $TARGET_HOME/WORKSHOP.md"

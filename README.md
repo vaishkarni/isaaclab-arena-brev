@@ -19,7 +19,7 @@ sudo -E bash "$HOME/isaaclab-arena-brev/brev-setup.sh"
 
 Launch parameters (all optional except the first): `VNC_PASSWORD`, `PREBUILD_IMAGE` (1),
 `INSTALL_GROOT` (0), `NOVNC_TLS` (0), `ARENA_BRANCH` (release/0.2.1), `G1_WORKFLOW` (1),
-`HF_TOKEN`, `DOWNLOAD_DATASET` (1), `DOWNLOAD_CHECKPOINT` (1). Secure Link `desktop` on port 6080.
+`HF_TOKEN` (needed for GR00T training/serving: gated `nvidia/Cosmos-Reason2-2B` backbone; participants can instead `hf auth login` themselves), `DOWNLOAD_DATASET` (1), `DOWNLOAD_CHECKPOINT` (1). Secure Link `desktop` on port 6080.
 Hardware: L40S / RTX PRO 6000 class GPU with RT cores, 128 GiB RAM, 300 GiB disk.
 
 ## Use on an existing VM
@@ -36,8 +36,8 @@ VNC_PASSWORD=changeme sudo -E bash brev-setup.sh
 | `launchable-setup.sh` | 8-line bootstrap to paste into the Launchable |
 | `brev-setup.sh` | the real setup: desktop, noVNC, systemd unit, Arena clone + image build, GR00T checkout, G1 workflow staging |
 | `STEPS-create-launchable.md` | organizer: click-by-click Launchable creation + dry run |
+| `WORKSHOP-G1.md` | participant hands-on sheet: validate, run the pre-trained policy, post-train GR00T N1.7, evaluate (copied to `~/WORKSHOP-G1.md` on the node) |
 | `RUNBOOK-g1-static-apple.md` | organizer: G1 apple-to-plate dataset / finetune / eval runbook |
-| `run_gr00t_server.sh`, `run_g1_apple_client.sh` | helpers written to the node for the eval lesson |
 | `isaaclab_arena_workshop.ipynb` | participant notebook |
 | `docs/`, `*.pdf` | organizer and participant guides |
 
