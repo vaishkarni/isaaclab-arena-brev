@@ -1,0 +1,185 @@
+<html>
+<head>
+<meta charset="utf-8">
+<title>IsaacLab-Arena on NVIDIA Brev - Workshop Organizer Setup Guide</title>
+<style>
+  @page { size: A4; margin: 16mm 16mm 18mm 16mm; }
+  body { font-family: "Liberation Sans", Arial, Helvetica, sans-serif; font-size: 10.5pt; color: #222; margin: 0; line-height: 1.2; }
+  pre, table, .note, .warn, .ok, .box { page-break-inside: avoid; }
+  h2, h3 { page-break-after: avoid; }
+  h1 { color: #76b900; font-size: 22pt; margin-bottom: 2pt; }
+  h2 { color: #1a1a1a; font-size: 15pt; border-bottom: 2px solid #76b900; padding-bottom: 2pt; margin-top: 18pt; }
+  h3 { color: #333; font-size: 12pt; margin-top: 12pt; }
+  .sub { color: #666; font-size: 10pt; margin-top: 0; }
+  pre { line-height: 1.15; margin: 4pt 0; background: #f2f2f2; border: 1px solid #d0d0d0; padding: 6pt 8pt; font-family: "Liberation Mono", "Courier New", monospace; font-size: 9pt; white-space: pre-wrap; }
+  code { font-family: "Liberation Mono", "Courier New", monospace; font-size: 9.5pt; background: #f2f2f2; padding: 0 2pt; }
+  table { border-collapse: collapse; width: 100%; margin: 6pt 0; font-size: 9.5pt; }
+  th, td { border: 1px solid #bbb; padding: 4pt 6pt; vertical-align: top; text-align: left; }
+  th { background: #e9f3d6; }
+  .note { background: #fff8dc; border-left: 4px solid #e0b000; padding: 5pt 8pt; margin: 6pt 0; }
+  .warn { background: #fdecea; border-left: 4px solid #d33; padding: 5pt 8pt; margin: 6pt 0; }
+  .ok { background: #e9f3d6; border-left: 4px solid #76b900; padding: 5pt 8pt; margin: 6pt 0; }
+  li { margin-bottom: 3pt; }
+  td.k { width: 22%; } td.m { width: 30%; }
+</style>
+</head>
+<body>
+
+<h1>IsaacLab-Arena on NVIDIA Brev</h1>
+<p class="sub">Workshop organizer guide: build the Launchable, test it, and share it with participants<br>
+Tanna TechBiz Physical AI Lab &middot; September 2026 &middot; Arena release/0.2.1, Isaac Sim 6.0.0, Isaac Lab 3.0.0</p>
+
+<h2>1. What you are building</h2>
+<p>A Brev <b>Launchable</b> is a one-click template: participants open a link, pick a GPU, and get a fully prepared machine. Ours gives every participant:</p>
+<ul>
+  <li>A GPU node with the IsaacLab-Arena repository (release/0.2.1, submodules included) already cloned under <code>~/IsaacLab-Arena</code>.</li>
+  <li>The Arena Docker image already built, so <code>./docker/run_docker.sh</code> starts in seconds instead of an hour.</li>
+  <li>The standalone Isaac GR00T checkout and its <code>uv</code> environment (steps 9-12 of the NVIDIA workflow page).</li>
+  <li>A GPU-accelerated Linux desktop viewable <b>in the browser</b> (noVNC on port 6080), so the Isaac Sim window is visible without any local install.</li>
+  <li>Optionally JupyterLab with the participant notebook.</li>
+</ul>
+<p>All of this is done by one file, <code>brev-setup.sh</code>, which you paste into the Launchable as its setup script. The participant-facing steps follow NVIDIA's
+<i>GR00T End-to-End Workflow &rarr; Simulation Workflow &rarr; Setup: Isaac Lab-Arena</i> page.</p>
+
+<table>
+<tr><th width="38%">Component</th><th width="30%">Where it runs</th><th>How participants reach it</th></tr>
+<tr><td>XFCE desktop on Xorg :0 (NVIDIA virtual display)</td><td>Host VM</td><td>Browser, via the Secure Link for port 6080</td></tr>
+<tr><td>x11vnc (password protected, localhost only)</td><td>Host VM, port 5900</td><td>Not exposed; noVNC proxies to it</td></tr>
+<tr><td>noVNC / websockify</td><td>Host VM, port 6080</td><td>Secure Link (Brev login) or direct IP</td></tr>
+<tr><td>Arena container <code>isaaclab_arena:latest</code></td><td>Docker, <code>--net=host</code>, DISPLAY=:0</td><td>Terminal on the desktop</td></tr>
+<tr><td>Isaac-GR00T (uv env)</td><td>Host VM, <code>~/Isaac-GR00T</code></td><td>Terminal on the desktop</td></tr>
+<tr><td>JupyterLab (optional)</td><td>Host VM, port 8888</td><td>Brev's built-in Jupyter Secure Link</td></tr>
+</table>
+
+<h2>2. Before you start</h2>
+<ul>
+  <li><b>Brev organization</b> with billing enabled and enough credits. Budget roughly <b>USD 2.5-3.5 per participant-hour</b> for an RTX PRO 6000 / L40S class GPU, plus the build time.</li>
+  <li><b>GPU choice.</b> Isaac Sim needs an RTX-capable GPU with 24 GB or more. Good choices: RTX PRO 6000, L40S, A10G (48 GB variants). Set <b>disk to 300 GiB or more</b>: the Arena image plus Isaac Sim caches take 60-80 GB.</li>
+  <li><b>Files from this kit:</b> <code>brev-setup.sh</code>, <code>IsaacLab-Arena-Workshop-Participant-Guide.pdf</code>, <code>isaaclab_arena_workshop.ipynb</code>.</li>
+  <li><b>Time.</b> A fresh deploy of this Launchable takes <b>60-90 minutes</b> to reach "Built" because it builds the Arena image. Deploy the day before, or at least 2 hours before the session.</li>
+</ul>
+
+<h2>3. Step 1 - Test the setup script on a dev instance (recommended)</h2>
+<p>Run the script once on any running Brev VM-mode instance before baking it into the Launchable. This catches driver or registry problems early.</p>
+<pre>brev copy brev-setup.sh &lt;instance-name&gt;:~/brev-setup.sh
+brev shell &lt;instance-name&gt;
+# on the instance:
+VNC_PASSWORD='choose-a-password' sudo -E bash ~/brev-setup.sh
+# or in the background with a log:
+VNC_PASSWORD='choose-a-password' nohup sudo -E bash ~/brev-setup.sh &gt; ~/setup.out 2&gt;&amp;1 &amp;
+tail -f /var/log/arena-workshop-setup.log</pre>
+<p>When it prints <code>=== DONE</code>, read <code>~/WORKSHOP.md</code> (it contains the URL and password), then confirm:</p>
+<pre>ss -tlnp | grep 6080                      # noVNC listening
+DISPLAY=:0 glxinfo | grep "OpenGL renderer" # must name the NVIDIA GPU, not llvmpipe
+docker images | grep isaaclab_arena         # image built
+cd ~/IsaacLab-Arena &amp;&amp; git submodule status # no leading "-" on any line</pre>
+<div class="note"><b>Registered / BYOC nodes.</b> Instances registered from your own cloud (Massed Compute, Shadeform, etc.) do not show Secure Link or tunnel controls in the Access tab. On those, run the script with <code>NOVNC_TLS=1</code>: it serves noVNC over self-signed HTTPS on the node's public IP and opens port 6080 in UFW (and in the node's <code>init.sh</code>, which resets UFW at boot). Participants accept the certificate warning once and enter the VNC password.</div>
+
+<h2>4. Step 2 - Create the Launchable</h2>
+<p>In the Brev console go to <b>Launchables &rarr; Create Launchable</b> and fill in the sections in order.</p>
+
+<h3>4.1 Details</h3>
+<ul><li><b>Name:</b> <code>isaaclab-arena-workshop</code> (cannot be changed later). <b>Description:</b> "IsaacLab-Arena 0.2.1 + Isaac Sim 6.0 with browser desktop, for the GR00T simulation workflow workshop".</li></ul>
+
+<h3>4.2 Default Hardware Configuration</h3>
+<ul>
+  <li>GPU: RTX PRO 6000 or L40S, 1 GPU. Participants may pick another RTX-class card at deploy time.</li>
+  <li>Disk: <b>300 GiB</b>.</li>
+</ul>
+
+<h3>4.3 Software Configuration</h3>
+<ul>
+  <li>Mode: <b>VM Mode</b> (Python, CUDA and Docker are preinstalled; the script relies on Docker and the NVIDIA driver).</li>
+  <li>Toggle <b>Jupyter</b> on if you want the notebook available at port 8888.</li>
+  <li><b>Setup script:</b> paste the full contents of <code>brev-setup.sh</code>.</li>
+</ul>
+
+<h3>4.4 Source</h3>
+<ul><li>Choose <b>Notebook</b> and upload <code>isaaclab_arena_workshop.ipynb</code>, or choose <b>None</b> if you will distribute the notebook another way.</li></ul>
+
+<h3>4.5 Network</h3>
+<table>
+<tr><th width="22%">Setting</th><th width="30%">Value</th><th>Why</th></tr>
+<tr><td>Secure Link</td><td>Name <code>desktop</code>, port <b>6080</b></td><td>Browser desktop behind Brev login. The name becomes part of the URL.</td></tr>
+<tr><td>Secure Link (optional)</td><td>Name <code>jupyter</code>, port 8888</td><td>Only if Jupyter was not enabled in 4.3 (that toggle creates its own link).</td></tr>
+<tr><td>TCP/UDP ports</td><td>none</td><td>Isaac Sim's WebRTC stream is not used; VNC needs nothing extra.</td></tr>
+</table>
+
+<h3>4.6 Launch Parameters</h3>
+<p>These become environment variables for the setup script. Participants see them on the deploy page.</p>
+<table>
+<tr><th width="22%">Parameter</th><th width="30%">Type / required / default</th><th>Purpose</th></tr>
+<tr><td class="k"><code>VNC_PASSWORD</code></td><td class="m">Text, required, no default</td><td>Password typed into noVNC. Use one shared workshop password, or let each participant set their own.</td></tr>
+<tr><td class="k"><code>PREBUILD_IMAGE</code></td><td class="m">Choice 1 / 0, optional, default 1</td><td>Build the Arena image during setup (recommended).</td></tr>
+<tr><td class="k"><code>INSTALL_GROOT</code></td><td class="m">Choice 0 / 1, optional, default 0</td><td>Also build the GR00T-flavored image (adds about 45 min). Not needed for the sim-setup module.</td></tr>
+<tr><td class="k"><code>NOVNC_TLS</code></td><td class="m">Choice 0 / 1, optional, default 0</td><td>Keep 0 behind a Secure Link. Set 1 only for BYOC nodes with no Secure Link.</td></tr>
+<tr><td class="k"><code>ARENA_BRANCH</code></td><td class="m">Text, optional, default release/0.2.1</td><td>Pin the Arena version used in the workshop.</td></tr>
+</table>
+
+<h3>4.7 View Access</h3>
+<ul><li><b>Anyone with the link</b> for an external workshop, or <b>Only my organization</b> if all participants are org members.</li></ul>
+<p>Click <b>Create Launchable</b>, then copy the share URL from the Launchable page.</p>
+
+<h2>5. Step 3 - Dry run from the share link</h2>
+<ol>
+  <li>Open the share URL in a private browser window, exactly as a participant would. Click <b>Deploy Launchable</b>, fill in <code>VNC_PASSWORD</code>, confirm the GPU.</li>
+  <li>Watch the instance page. Status goes <b>Deploying &rarr; Building &rarr; Built</b>. Building is where the setup script runs; expect 60-90 minutes on the first deploy.</li>
+  <li>Open the <b>Logs</b> tab if Building takes longer than 2 hours. The script also writes <code>/var/log/arena-workshop-setup.log</code>.</li>
+  <li>When Built, click the <b>desktop</b> Secure Link in the Access tab, log in with your Brev account, enter the VNC password. You should see an XFCE desktop.</li>
+  <li>Open a terminal on the desktop and run the smoke test from the participant guide, section 4 (policy_runner with <code>--viz kit</code>). An Isaac Lab window must appear on the desktop within 3-5 minutes on the first launch.</li>
+  <li>Stop or delete the test instance afterwards to save credits.</li>
+</ol>
+<div class="ok">If the dry run passes, the Launchable is ready. Nothing else needs to be rebuilt; every deploy repeats the same script.</div>
+
+<h2>6. Step 4 - Share with participants</h2>
+<ul>
+  <li><b>Send</b> the share URL, the participant PDF, and the notebook. Tell participants the VNC password policy (shared password or self-chosen).</li>
+  <li><b>Accounts.</b> Each participant needs a Brev account to log in through the Secure Link. If they deploy their own instances they also need to be in an org with credits: invite them with <code>brev invite</code> or the console's org settings.</li>
+  <li><b>Who pays.</b> Option A: participants deploy the Launchable into their own org (they pay). Option B: you deploy N instances into your org ahead of time and hand each participant an instance name plus its desktop URL; use <b>Share SSH Access &rarr; Add User</b> on each instance if they need a shell outside the desktop. Option B avoids the 60-90 minute wait on the day.</li>
+  <li><b>Pre-deploy timing.</b> Start instances at least 2 hours before the session. Once Built, they stay ready as long as they are running; stopping and starting keeps the built image and repo.</li>
+  <li><b>Reboots.</b> The desktop is a systemd service (<code>gpu-desktop</code>) and comes back automatically. Brev does not rerun the setup script on restart, and it does not need to.</li>
+</ul>
+
+<h2>7. Day-of runbook</h2>
+<table>
+<tr><th width="14%">When</th><th>Action</th></tr>
+<tr><td>T-2h</td><td>All instances Running and Built. Open each desktop link once to confirm the XFCE screen appears.</td></tr>
+<tr><td>T-30m</td><td>On each instance, start the container once so caches are warm: <code>cd ~/IsaacLab-Arena &amp;&amp; ./docker/run_docker.sh</code>, then <code>exit</code>.</td></tr>
+<tr><td>T-0</td><td>Participants open the desktop link, enter the VNC password, open a terminal, follow the participant guide from section 2.</td></tr>
+<tr><td>During</td><td>Keep this guide's troubleshooting table handy. <code>tail -f /var/log/arena-workshop-setup.log</code> and <code>/tmp/xorg.log</code> are the two logs that matter.</td></tr>
+<tr><td>After</td><td>Stop instances (keeps disk, stops GPU billing) or delete them.</td></tr>
+</table>
+
+<h2>8. Troubleshooting</h2>
+<table>
+<tr><th width="32%">Symptom</th><th width="24%">Cause</th><th>Fix</th></tr>
+<tr><td>Secure Link shows "connection refused" or a blank page</td><td>noVNC not running</td><td>On the instance: <code>sudo systemctl restart gpu-desktop</code>; check <code>/tmp/xorg.log</code> for "(EE)".</td></tr>
+<tr><td>Xorg log: "no screens found" / "UseDisplayDevice None is not supported"</td><td>Server-class GPU needs the driver's virtual-display mode</td><td>The generated xorg.conf already omits UseDisplayDevice. If you edited it, keep only <code>AllowEmptyInitialConfiguration</code> and the <code>Virtual</code> line.</td></tr>
+<tr><td><code>glxinfo</code> shows llvmpipe</td><td>NVIDIA X driver package missing</td><td><code>sudo apt install xserver-xorg-video-nvidia-&lt;driver major&gt;</code>, then restart the service.</td></tr>
+<tr><td>noVNC connects but shows a black screen</td><td>XFCE session died or screensaver</td><td><code>~/start-desktop.sh</code> from an SSH shell; the script also disables DPMS.</td></tr>
+<tr><td>Build phase fails at <code>git submodule</code></td><td>SSH URLs in .gitmodules</td><td>The script sets a global URL rewrite to HTTPS. Re-run <code>git submodule update --init --recursive</code> as the login user.</td></tr>
+<tr><td>Docker build fails pulling <code>nvcr.io/nvidia/isaac-sim:6.0.0-dev2</code></td><td>Registry hiccup; the image is public</td><td>Re-run: <code>cd ~/IsaacLab-Arena &amp;&amp; ./docker/run_docker.sh -r</code>.</td></tr>
+<tr><td>policy_runner exits with "required: --policy_type" or "num_steps or num_episodes must be provided"</td><td>Argument order / missing budget</td><td>Runner options (<code>--policy_type zero_action --viz kit --num_steps 3000</code>) go before the environment name; environment options after it.</td></tr>
+<tr><td>Isaac Sim window opens but is very slow through the browser</td><td>VNC frame rate</td><td>Use <code>resize=scale</code> in the noVNC URL and set quality to 6 in the noVNC side panel. Advise 1920x1080 or lower browser windows.</td></tr>
+<tr><td>Apple falls through the shelf in the test</td><td>Known first-run asset warm-up</td><td>Re-run the test once (documented by NVIDIA).</td></tr>
+<tr><td>Participant cannot log in to the Secure Link</td><td>No Brev account or wrong org</td><td>They must sign in with the same account that was invited; otherwise use the direct-IP mode (NOVNC_TLS=1).</td></tr>
+</table>
+
+<h2>9. Security notes</h2>
+<ul>
+  <li>VNC is password protected and bound to localhost; only noVNC on 6080 is reachable, and behind a Secure Link it also requires Brev login.</li>
+  <li>The Arena container runs <code>--privileged --net=host</code> by design of <code>run_docker.sh</code>; treat every participant instance as single-tenant.</li>
+  <li>Change the shared VNC password after the workshop or delete the instances.</li>
+</ul>
+
+<h2>10. Reference links</h2>
+<ul>
+  <li>NVIDIA workflow page participants follow: <code>https://docs.nvidia.com/learning/physical-ai/gr00t-e2e-workflow/latest/simulation-workflow/sim-setup-isaac-lab-arena.html</code></li>
+  <li>Brev Launchables concepts: <code>https://docs.nvidia.com/brev/concepts/launchables</code></li>
+  <li>Brev console reference: <code>https://docs.nvidia.com/brev/guides/console-reference</code></li>
+  <li>IsaacLab-Arena repository: <code>https://github.com/isaac-sim/IsaacLab-Arena</code> (tag release/0.2.1)</li>
+  <li>IsaacLab-Arena docs: <code>https://isaac-sim.github.io/IsaacLab-Arena/main/</code></li>
+</ul>
+
+</body>
+</html>

@@ -1,0 +1,182 @@
+<html>
+<head>
+<meta charset="utf-8">
+<title>IsaacLab-Arena Workshop - Participant Guide</title>
+<style>
+  @page { size: A4; margin: 16mm 16mm 18mm 16mm; }
+  body { font-family: "Liberation Sans", Arial, Helvetica, sans-serif; font-size: 10.5pt; color: #222; margin: 0; line-height: 1.2; }
+  pre, table, .note, .warn, .ok, .box { page-break-inside: avoid; }
+  h2, h3 { page-break-after: avoid; }
+  h1 { color: #76b900; font-size: 22pt; margin-bottom: 2pt; }
+  h2 { color: #1a1a1a; font-size: 15pt; border-bottom: 2px solid #76b900; padding-bottom: 2pt; margin-top: 18pt; }
+  h3 { color: #333; font-size: 12pt; margin-top: 12pt; }
+  .sub { color: #666; font-size: 10pt; margin-top: 0; }
+  pre { line-height: 1.15; margin: 4pt 0; background: #f2f2f2; border: 1px solid #d0d0d0; padding: 6pt 8pt; font-family: "Liberation Mono", "Courier New", monospace; font-size: 9pt; white-space: pre-wrap; }
+  code { font-family: "Liberation Mono", "Courier New", monospace; font-size: 9.5pt; background: #f2f2f2; padding: 0 2pt; }
+  table { border-collapse: collapse; width: 100%; margin: 6pt 0; font-size: 9.5pt; }
+  th, td { border: 1px solid #bbb; padding: 4pt 6pt; vertical-align: top; text-align: left; }
+  th { background: #e9f3d6; }
+  .note { background: #fff8dc; border-left: 4px solid #e0b000; padding: 5pt 8pt; margin: 6pt 0; }
+  .ok { background: #e9f3d6; border-left: 4px solid #76b900; padding: 5pt 8pt; margin: 6pt 0; }
+  .box { border: 1px solid #bbb; padding: 6pt 8pt; margin: 6pt 0; }
+  li { margin-bottom: 3pt; }
+  td.k { width: 22%; } td.m { width: 30%; }
+</style>
+</head>
+<body>
+
+<h1>IsaacLab-Arena Workshop</h1>
+<p class="sub">Participant guide: Simulation Workflow &rarr; Setup: Isaac Lab-Arena, on NVIDIA Brev<br>
+Tanna TechBiz Physical AI Lab &middot; September 2026 &middot; Arena release/0.2.1, Isaac Sim 6.0.0, Isaac Lab 3.0.0</p>
+
+<div class="box">
+<b>Fill in before the session</b><br>
+Launchable / instance link: ______________________________________________<br>
+Desktop (noVNC) link: ____________________________________________________<br>
+VNC password: ____________________&nbsp;&nbsp;&nbsp;&nbsp;Brev login email: ____________________
+</div>
+
+<h2>1. What you will do today</h2>
+<p>This module follows NVIDIA's <i>GR00T End-to-End Workflow &rarr; Simulation Workflow &rarr; Setup: Isaac Lab-Arena</i> page. By the end you will have:</p>
+<ol>
+  <li>A GPU cloud machine with IsaacLab-Arena, Isaac Sim 6.0 and Isaac Lab 3.0 running inside Docker.</li>
+  <li>The Unitree G1 "static apple to plate" environment validated with automated tests.</li>
+  <li>The Isaac Sim GUI open in your browser, running an Arena environment you can poke at.</li>
+  <li>The standalone Isaac GR00T checkout ready for the later fine-tuning and evaluation modules.</li>
+</ol>
+<p>Your machine was prepared by a setup script, so steps that normally take an hour (cloning, building the container) are already done. You will verify each one instead of waiting for it.</p>
+
+<h2>2. Get to your desktop (5 min)</h2>
+<h3>2.1 If you deploy the Launchable yourself</h3>
+<ol>
+  <li>Open the Launchable link from your organizer and sign in to Brev.</li>
+  <li>Click <b>Deploy Launchable</b>. Enter a <b>VNC_PASSWORD</b> (write it in the box above). Leave the other parameters at their defaults. Keep the suggested GPU.</li>
+  <li>Wait for the instance to show <b>Running</b> and <b>Built</b>. The first build takes 60-90 minutes, which is why organizers usually deploy the day before.</li>
+</ol>
+<h3>2.2 If your organizer gave you an instance</h3>
+<ol><li>Open the desktop link they sent. Skip to 2.3.</li></ol>
+<h3>2.3 Open the browser desktop</h3>
+<ol>
+  <li>On the instance page, <b>Access</b> tab, click the Secure Link named <b>desktop</b> (port 6080). Sign in with your Brev account if asked.</li>
+  <li>If you were given a direct <code>https://&lt;ip&gt;:6080/vnc.html</code> link instead, your browser will warn about a self-signed certificate. Click <b>Advanced &rarr; Proceed</b>. This is expected.</li>
+  <li>Enter the VNC password. An XFCE Linux desktop appears.</li>
+  <li>Open a terminal: right-click the desktop &rarr; <b>Open Terminal Here</b>, or <b>Applications &rarr; Terminal Emulator</b>.</li>
+</ol>
+<div class="note">The desktop is rendered on the cloud GPU and streamed to your browser. If it looks small, use the noVNC side panel (left edge) &rarr; Settings &rarr; Scaling Mode: <b>Local Scaling</b>. Fullscreen (F11) helps.</div>
+
+<h2>3. Setup Isaac Lab-Arena (workflow steps 1-6)</h2>
+<p>Commands are typed in the desktop terminal. Everything is already in place; each step tells you how to confirm it.</p>
+
+<h3>Step 1-2. The repository</h3>
+<p>The workflow clones IsaacLab-Arena with submodules. On your machine this was done with the HTTPS URL, so no GitHub SSH key is needed:</p>
+<pre>cd ~/IsaacLab-Arena
+git branch --show-current        # expect: release/0.2.1
+git submodule status             # two lines, each starting with a commit hash (no leading "-")</pre>
+<p>If you ever need to redo it yourself (for example on your own computer):</p>
+<pre>cd ~/
+git config --global url."https://github.com/".insteadOf "git@github.com:"
+git clone --branch release/0.2.1 --recurse-submodules https://github.com/isaac-sim/IsaacLab-Arena.git</pre>
+
+<h3>Step 3. Host directories</h3>
+<p>These are mounted into the container as <code>/datasets</code>, <code>/models</code> and <code>/eval</code>:</p>
+<pre>mkdir -p $HOME/datasets $HOME/models $HOME/eval
+ls -d $HOME/datasets $HOME/models $HOME/eval</pre>
+
+<h3>Step 4. Launch the Docker container</h3>
+<pre>cd ~/IsaacLab-Arena
+./docker/run_docker.sh</pre>
+<p>Because the image <code>isaaclab_arena:latest</code> is already built, this drops you into a shell inside the container within a few seconds. The prompt changes and your working directory is <code>/workspaces/isaaclab_arena</code>.</p>
+<pre>nvidia-smi | head -15            # the GPU is visible inside the container
+echo $DISPLAY                    # :0  (the container can open windows on your desktop)
+type python                      # alias for /isaac-sim/python.sh, Isaac Sim's own interpreter</pre>
+<div class="note">Everything from here until section 5 runs <b>inside the container</b>. If you close the terminal, run <code>./docker/run_docker.sh</code> again; it re-attaches to the same container.</div>
+
+<h3>Step 5 (optional). Full test suite</h3>
+<p>The workflow lists a 20-30 minute verification. Skip it during the live session; run it later if you like:</p>
+<pre>pytest -sv -m "with_cameras and not with_subprocess" isaaclab_arena/tests/
+pytest -sv -m "not with_cameras and not with_subprocess" isaaclab_arena/tests/
+pytest -sv -m with_subprocess isaaclab_arena/tests/</pre>
+
+<h3>Step 6. Environment variables for the tutorial</h3>
+<pre>export DATASET_DIR=/datasets/isaaclab_arena/static_apple_tutorial
+mkdir -p $DATASET_DIR
+export MODELS_DIR=/models/isaaclab_arena/static_apple_tutorial
+mkdir -p $MODELS_DIR</pre>
+
+<h2>4. Validate the environment with automated tests (workflow steps 7-8)</h2>
+<p>This runs the G1 static pick-and-place environment headlessly and checks scene, task and termination logic. About 2 minutes.</p>
+<pre>python -m pytest isaaclab_arena/tests/test_g1_static_pick_and_place.py -v</pre>
+<p>Expected ending:</p>
+<pre>=========== 2 passed, 3488 warnings in 95.54s (0:01:35) ===========</pre>
+<div class="note">If the apple falls through the shelf on the very first run, simply run the command again. NVIDIA documents this as a first-execution warm-up effect.</div>
+
+<h3>Bonus: see the simulation in the GUI</h3>
+<p>Still inside the container, run the policy runner with the Kit visualizer. Runner options (<code>--policy_type</code>, <code>--viz</code>, <code>--num_steps</code>) go <b>before</b> the environment name; environment options go after it. The first launch takes 3-5 minutes (shader compile and asset download), later ones about a minute. An Isaac Lab window opens on your browser desktop:</p>
+<pre>python isaaclab_arena/evaluation/policy_runner.py \
+  --policy_type zero_action --viz kit --num_steps 3000 \
+  pick_and_place_maple_table \
+  --embodiment droid_rel_joint_pos \
+  --pick_up_object rubiks_cube_hot3d_robolab \
+  --destination_location bowl_ycb_robolab \
+  --hdr home_office_robolab</pre>
+<ul>
+  <li>Orbit with the right mouse button, pan with the middle button, zoom with the wheel.</li>
+  <li>Hold <b>Shift</b> and left-drag an object to nudge it.</li>
+  <li>Try swapping <code>--hdr home_office_robolab</code> for <code>--hdr billiard_hall_robolab</code>, or the cube for <code>mustard_bottle_hot3d_robolab</code>.</li>
+  <li>The <code>zero_action</code> policy holds the robot still; the point is to see the scene. Steps run at a few per second with the GUI on, so 3000 steps is roughly 10-15 minutes. Press <b>Ctrl-C</b> in the terminal to stop earlier.</li>
+  <li>Omit <code>--viz kit</code> to run the same thing headless, which is what the automated tests do.</li>
+</ul>
+
+<h2>5. Setup Isaac GR00T outside the container (workflow steps 9-12)</h2>
+<p>Open a <b>second terminal</b> on the desktop (not inside Docker). The workflow keeps GR00T separate so it can be updated without rebuilding the Arena container. The setup script has already cloned it at the pinned commit and created the <code>uv</code> environment; verify:</p>
+<pre>export ISAAC_GR00T_DIR=$HOME/Isaac-GR00T
+cd $ISAAC_GR00T_DIR
+git rev-parse HEAD               # expect 4b1dca9d88d2a0b9ea5a65aa61c82ff89f5c4f0e
+ls .venv &amp;&amp; uv --version        # environment exists</pre>
+<p>If either check fails, do it by hand exactly as the workflow says:</p>
+<pre>git clone https://github.com/NVIDIA/Isaac-GR00T.git $ISAAC_GR00T_DIR
+cd $ISAAC_GR00T_DIR
+git checkout 4b1dca9d88d2a0b9ea5a65aa61c82ff89f5c4f0e
+uv sync</pre>
+<div class="ok">Checkpoint reached: Arena container running, environment tests passing, GUI verified, GR00T environment ready. This is the state the next workflow pages assume.</div>
+
+<h2>6. What comes next in the workflow</h2>
+<table>
+<tr><th width="6%">#</th><th width="30%">Page</th><th>What it covers</th></tr>
+<tr><td>3</td><td>Sim Environment Code Review</td><td>Reads <code>galileo_g1_static_pick_and_place_environment.py</code>: assets, embodiment, scene and task logic.</td></tr>
+<tr><td>4</td><td>Sim Teleop and WBC</td><td>OpenXR teleoperation with whole-body control to collect demonstrations.</td></tr>
+<tr><td>5</td><td>Sim Data Export</td><td>Exporting the collected episodes to <code>$DATASET_DIR</code> in LeRobot format.</td></tr>
+<tr><td>6</td><td>GR00T Fine-Tuning on Sim Data</td><td>Post-training GR00T 1.7 in <code>~/Isaac-GR00T</code> on the exported data.</td></tr>
+<tr><td>7</td><td>Sim Evaluation</td><td>Closed-loop evaluation of the fine-tuned checkpoint through Arena's remote-policy server/client.</td></tr>
+</table>
+<p>All pages: <code>https://docs.nvidia.com/learning/physical-ai/gr00t-e2e-workflow/latest/simulation-workflow/</code></p>
+
+<h2>7. Troubleshooting</h2>
+<table>
+<tr><th width="34%">Problem</th><th>Try this</th></tr>
+<tr><td>Desktop link does not load</td><td>Reload once. If still blank, ask the organizer to run <code>sudo systemctl restart gpu-desktop</code> on your instance.</td></tr>
+<tr><td>Wrong VNC password</td><td>It is the value you (or the organizer) entered as VNC_PASSWORD at deploy time. It is also in <code>~/WORKSHOP.md</code> on the instance.</td></tr>
+<tr><td>No window appears for policy_runner</td><td>Check <code>--viz kit</code> is present and placed before the environment name. Inside the container run <code>echo $DISPLAY</code>; it must print <code>:0</code>. If empty: <code>exit</code>, then <code>export DISPLAY=:0</code> and start <code>./docker/run_docker.sh</code> again.</td></tr>
+<tr><td>"the following arguments are required: --policy_type"</td><td>Argument order. Runner options go before the environment name, environment options after it.</td></tr>
+<tr><td>"Either num_steps or num_episodes must be provided"</td><td>Add <code>--num_steps 3000</code> (or <code>--num_episodes 3</code>) before the environment name.</td></tr>
+<tr><td>"permission denied" from docker</td><td>Log out and back in to the desktop terminal, or run <code>newgrp docker</code>.</td></tr>
+<tr><td>Test fails with the apple falling</td><td>Run the pytest command a second time.</td></tr>
+<tr><td>Container shell is slow to start the first time</td><td>Isaac Sim compiles shaders on first launch (2-5 minutes). Subsequent launches are fast.</td></tr>
+<tr><td>Browser desktop is laggy</td><td>Lower the browser window size, enable Local Scaling, or close other tabs. The simulation itself runs at full speed on the GPU.</td></tr>
+</table>
+
+<h2>8. Quick reference</h2>
+<pre># enter / re-enter the Arena container
+cd ~/IsaacLab-Arena &amp;&amp; ./docker/run_docker.sh
+
+# inside the container
+python -m pytest isaaclab_arena/tests/test_g1_static_pick_and_place.py -v
+python isaaclab_arena/evaluation/policy_runner.py --policy_type zero_action --viz kit --num_steps 3000 \
+  pick_and_place_maple_table --embodiment droid_rel_joint_pos --hdr home_office_robolab
+
+# on the host
+~/start-desktop.sh            # restart the browser desktop if it dies
+cat ~/WORKSHOP.md             # URL and password for this machine</pre>
+
+</body>
+</html>
