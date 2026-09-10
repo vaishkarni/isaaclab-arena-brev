@@ -69,17 +69,34 @@ python -m pytest isaaclab_arena/tests/test_g1_static_pick_and_place.py -v     # 
 If the apple falls through the shelf on the first run, run it once more (asset cache warm-up).
 Keep this terminal open: the helper scripts in the next steps exec into this container.
 
-The dataset is already in place. Look at it:
+The recorded demos are already downloaded:
 
 ```bash
-ls -lh $DATASET_DIR                     # arena_g1_static_apple_dataset_recorded.hdf5 + lerobot/
-ls $DATASET_DIR/lerobot/meta            # info.json, modality.json, episodes.jsonl ...
+ls -lh $DATASET_DIR                     # arena_g1_static_apple_dataset_recorded.hdf5 (10 GB, 200 teleop demos)
 ```
 
-`arena_g1_static_apple_dataset_recorded.hdf5` is the 200 teleoperated demos from
-`nvidia/Arena-G1-Static-PickNPlace-Task`; `lerobot/` is the same data already converted with
-`convert_hdf5_to_lerobot.py`. If you record your own demos later, `~/run_g1_convert.sh` does the
-conversion.
+## 2b. Convert HDF5 to LeRobot format (workflow step "Sim Data Export") — terminal 3
+
+GR00T trains on LeRobot-format data. The converter runs inside the Arena container; the config
+`isaaclab_arena_gr00t/lerobot/config/g1_static_apple_config.yaml` already points at
+`/datasets/isaaclab_arena/static_apple_tutorial` and `arena_g1_static_apple_dataset_recorded.hdf5`,
+so nothing to edit. From a host terminal (the container from step 2 must be running):
+
+```bash
+~/run_g1_convert.sh
+```
+
+Output: `$DATASET_DIR/arena_g1_static_apple_dataset_recorded/lerobot/` with `data/` (parquet
+states and actions), `videos/` (ego-view MP4) and `meta/` (info.json, modality.json,
+episodes.jsonl). Check it:
+
+```bash
+ls $DATASET_DIR/arena_g1_static_apple_dataset_recorded/lerobot/meta
+```
+
+Short on time? NVIDIA's own conversion of the same demos ships with the dataset in
+`$DATASET_DIR/lerobot/`; link it into place instead:
+`ln -s ../lerobot $DATASET_DIR/arena_g1_static_apple_dataset_recorded/lerobot`
 
 ## 3. Watch the pre-trained policy (10 min) — terminals 2 and 3
 

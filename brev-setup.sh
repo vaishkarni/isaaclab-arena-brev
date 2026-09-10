@@ -326,8 +326,8 @@ if [ "$G1_WORKFLOW" = "1" ]; then
   if [ "${DOWNLOAD_DATASET:-1}" = "1" ] && [ ! -f "$DS_DIR/arena_g1_static_apple_dataset_recorded.hdf5" ]; then
     log "Downloading nvidia/Arena-G1-Static-PickNPlace-Task to $DS_DIR (~10 GB) ..."
     as_user "$HF download nvidia/Arena-G1-Static-PickNPlace-Task --repo-type dataset --local-dir '$DS_DIR'" >>"$LOG" 2>&1 \
-      && as_user "cd '$DS_DIR' && ln -sf arena_g1_static_apple_dataset_recorded_200_demos.hdf5 arena_g1_static_apple_dataset_recorded.hdf5 && mkdir -p arena_g1_static_apple_dataset_recorded && [ -e arena_g1_static_apple_dataset_recorded/lerobot ] || ln -s ../lerobot arena_g1_static_apple_dataset_recorded/lerobot" \
-      && log "dataset ready: $DS_DIR (hdf5 + lerobot/)" || log "WARN: dataset download failed"
+      && as_user "cd '$DS_DIR' && ln -sf arena_g1_static_apple_dataset_recorded_200_demos.hdf5 arena_g1_static_apple_dataset_recorded.hdf5" \
+      && log "dataset ready: $DS_DIR (hdf5; participants convert to LeRobot with ~/run_g1_convert.sh; NVIDIA's own conversion kept in lerobot/ as fallback)" || log "WARN: dataset download failed"
   fi
 
   # Pre-trained GR00T N1.7 checkpoint (skip the 16 GB optimizer state and 13 GB ONNX exports)
@@ -391,8 +391,11 @@ docker exec -it -e DISPLAY=:0 isaaclab_arena-latest bash -c "cd /workspaces/isaa
 EOF
   cat > "$TARGET_HOME/run_g1_convert.sh" <<'EOF'
 #!/bin/bash
-# Convert the recorded HDF5 to LeRobot format inside the Arena container (only needed for your OWN recordings;
-# the downloaded dataset already ships a lerobot/ folder).
+# Convert the HDF5 demos to LeRobot format inside the Arena container (workflow step "Sim Data Export").
+# Reads  /datasets/isaaclab_arena/static_apple_tutorial/arena_g1_static_apple_dataset_recorded.hdf5
+# Writes /datasets/isaaclab_arena/static_apple_tutorial/arena_g1_static_apple_dataset_recorded/lerobot  (what run_g1_finetune.sh trains on)
+# Requires the Arena container to be running (./docker/run_docker.sh in another terminal).
+# Fallback if you are short on time: ln -s ../lerobot ~/datasets/isaaclab_arena/static_apple_tutorial/arena_g1_static_apple_dataset_recorded/lerobot
 docker exec -it isaaclab_arena-latest bash -c "cd /workspaces/isaaclab_arena && /isaac-sim/python.sh isaaclab_arena_gr00t/lerobot/convert_hdf5_to_lerobot.py --yaml_file isaaclab_arena_gr00t/lerobot/config/g1_static_apple_config.yaml"
 EOF
   cat > "$TARGET_HOME/run_g1_finetune.sh" <<'EOF'
