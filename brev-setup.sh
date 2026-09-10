@@ -295,13 +295,16 @@ fi
 
 # release/0.2.1 base image lacks pandas, which isaaclab_arena_gr00t/lerobot/convert_hdf5_to_lerobot.py imports.
 # Bake it into the image (docker commit) so the conversion works in the plain base container.
+# (the image entrypoint needs run_docker.sh's user variables, so bypass it and restore it on commit)
 if [ -n "$(docker images -q isaaclab_arena:latest 2>/dev/null)" ] && \
-   ! docker run --rm isaaclab_arena:latest /isaac-sim/python.sh -c "import pandas" >/dev/null 2>&1; then
+   ! docker run --rm --entrypoint /isaac-sim/python.sh isaaclab_arena:latest -c "import pandas" >/dev/null 2>&1; then
   log "Adding pandas to isaaclab_arena:latest (needed by convert_hdf5_to_lerobot.py) ..."
+  EP=$(docker inspect -f '{{json .Config.Entrypoint}}' isaaclab_arena:latest)
+  CMD=$(docker inspect -f '{{json .Config.Cmd}}' isaaclab_arena:latest)
   docker rm -f arena-pandas-fix >/dev/null 2>&1 || true
-  docker run -d --name arena-pandas-fix isaaclab_arena:latest sleep 600 >/dev/null \
+  docker run -d --name arena-pandas-fix --entrypoint bash isaaclab_arena:latest -c "sleep 600" >/dev/null \
     && docker exec arena-pandas-fix /isaac-sim/python.sh -m pip install -q pandas >>"$LOG" 2>&1 \
-    && docker commit arena-pandas-fix isaaclab_arena:latest >/dev/null \
+    && docker commit --change "ENTRYPOINT $EP" --change "CMD $CMD" arena-pandas-fix isaaclab_arena:latest >/dev/null \
     && log "pandas baked into isaaclab_arena:latest" || log "WARN: could not add pandas to the image"
   docker rm -f arena-pandas-fix >/dev/null 2>&1 || true
 fi
