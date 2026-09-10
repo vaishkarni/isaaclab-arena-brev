@@ -169,5 +169,6 @@ Each helper is a few lines; `cat` it to see the exact docs command it runs.
 | `Action key 'left_arm''s horizon must be 40` | Server modality config and checkpoint disagree; use the same `--modality-config-path` for training and serving (the helpers do). |
 | No Isaac Lab window | Inside the container `echo $DISPLAY` must print `:0`. Start the container from a desktop terminal, not from SSH. |
 | `docker exec` says no container `isaaclab_arena-latest` | Step 2 not running; start `./docker/run_docker.sh` in terminal 1. |
+| `CUDA_HOME does not exist, unable to compile CUDA op(s)` | The CUDA toolkit is missing (`ls /usr/local/cuda`). It is installed by the setup script; if absent: `sudo apt-get install -y cuda-toolkit-12-8` then `export CUDA_HOME=/usr/local/cuda`. |
 | CUDA out of memory during finetune | Stop the GR00T server first; or lower `--global-batch-size` in `~/run_g1_finetune.sh`. |
 | Apple falls through the shelf | Re-run once; first-run asset cache. |
