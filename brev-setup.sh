@@ -236,6 +236,23 @@ if [ "${PRESETUP_GROOT:-1}" = "1" ]; then
     as_user "test -x ~/.local/bin/uv" && log "uv installed to ~/.local/bin/uv" || log "WARN: uv install failed"
     as_user "grep -q '.local/bin' ~/.bashrc || echo 'export PATH=\$HOME/.local/bin:\$PATH' >> ~/.bashrc"
   fi
+  # GR00T post-training imports deepspeed, which needs a CUDA toolkit (nvcc) even on one GPU; Brev VMs
+  # ship only the driver. Same packages as Isaac-GR00T scripts/deployment/dgpu/install_deps.sh.
+  if [ ! -d /usr/local/cuda ]; then
+    if ! apt-cache show cuda-toolkit-12-8 >/dev/null 2>&1; then
+      UBU=$(. /etc/os-release && echo "${VERSION_ID//.}")
+      curl -fsSL "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${UBU}/x86_64/cuda-keyring_1.1-1_all.deb" -o /tmp/cuda-keyring.deb \
+        && dpkg -i /tmp/cuda-keyring.deb >>"$LOG" 2>&1 && apt-get update -qq >/dev/null; rm -f /tmp/cuda-keyring.deb
+    fi
+    log "Installing cuda-toolkit-12-8 + ffmpeg + libaio-dev (GR00T finetune deps) ..."
+    apt-get install -y -qq --no-install-recommends ffmpeg libaio-dev cuda-toolkit-12-8 >>"$LOG" 2>&1 \
+      && log "CUDA toolkit at /usr/local/cuda ($(/usr/local/cuda/bin/nvcc --version | grep -o 'release [0-9.]*'))" \
+      || log "WARN: cuda-toolkit-12-8 install failed; finetune will stop with 'CUDA_HOME does not exist'"
+  else
+    apt-get install -y -qq --no-install-recommends ffmpeg libaio-dev >>"$LOG" 2>&1 || true
+  fi
+  as_user "grep -q 'CUDA_HOME=/usr/local/cuda' ~/.bashrc || printf '\nexport CUDA_HOME=/usr/local/cuda\nexport PATH=\$CUDA_HOME/bin:\$PATH\n' >> ~/.bashrc"
+
   groot_sync() {
     # the repo keeps prebuilt wheels in Git LFS; without git-lfs the clone holds pointer files and
     # `uv sync` dies with "Invalid zip file structure" on flash_attn-*.whl
@@ -354,7 +371,7 @@ if [ "$G1_WORKFLOW" = "1" ]; then
 # GR00T N1.7 policy server (host). Usage: ~/run_gr00t_server.sh [model_dir]
 # Default model: the pre-trained static-apple checkpoint. Pass your finetune dir to serve your own,
 # e.g. ~/run_gr00t_server.sh ~/models/isaaclab_arena/static_apple_tutorial/static_apple_n17_finetune/checkpoint-20000
-export PATH=$HOME/.local/bin:$PATH PYTHONUNBUFFERED=1
+export PATH=$HOME/.local/bin:$PATH PYTHONUNBUFFERED=1 CUDA_HOME=/usr/local/cuda
 MODEL=${1:-$HOME/models/isaaclab_arena/static_apple_tutorial/gn1x_tuned_static_apple}
 cd ~/Isaac-GR00T
 exec uv run --no-sync python gr00t/eval/run_gr00t_server.py \
@@ -383,7 +400,7 @@ EOF
 # Post-train GR00T N1.7 on the static apple dataset (host, standalone Isaac-GR00T venv).
 # Usage: ~/run_g1_finetune.sh [max_steps] [output_dir]     e.g. ~/run_g1_finetune.sh 1000 for a live-workshop demo
 # Docs: 20000 steps take ~2-3 h on an RTX 6000 Ada; checkpoints land in <output_dir>/checkpoint-<step>.
-export PATH=$HOME/.local/bin:$PATH PYTHONUNBUFFERED=1
+export PATH=$HOME/.local/bin:$PATH PYTHONUNBUFFERED=1 CUDA_HOME=/usr/local/cuda
 STEPS=${1:-20000}
 # save at least once: a 1000-step live run must still leave a checkpoint-1000 to evaluate
 SAVE=$(( STEPS < 5000 ? STEPS : 5000 ))
