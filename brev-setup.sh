@@ -133,6 +133,22 @@ if [ "$NOVNC_TLS" = "1" ]; then
 fi
 
 # ------------------------------------------------- 5. start / stop scripts
+# noVNC web root overlay: the bare Secure Link URL (no query string) lands on index.html, which
+# redirects to vnc.html with autoconnect + scale-to-window; defaults.json applies the same to
+# anyone who opens vnc.html directly.
+NOVNC_WEB="$TARGET_HOME/.vnc/novnc-web"
+as_user "mkdir -p '$NOVNC_WEB' && ln -sfn /usr/share/novnc/* '$NOVNC_WEB/' 2>/dev/null; rm -f '$NOVNC_WEB/index.html' '$NOVNC_WEB/defaults.json'"
+cat > "$NOVNC_WEB/index.html" <<'NVEOF'
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Workshop desktop</title>
+<meta http-equiv="refresh" content="0; url=vnc.html?autoconnect=true&resize=scale&reconnect=true&reconnect_delay=2000">
+<script>location.replace("vnc.html?autoconnect=true&resize=scale&reconnect=true&reconnect_delay=2000" + location.hash);</script>
+</head><body>Opening the desktop...</body></html>
+NVEOF
+cat > "$NOVNC_WEB/defaults.json" <<'NVEOF'
+{ "resize": "scale", "reconnect": true, "reconnect_delay": 2000, "show_dot": true }
+NVEOF
+chown -R "$TARGET_USER:$TARGET_USER" "$NOVNC_WEB"
+
 cat > "$TARGET_HOME/start-desktop.sh" <<EOF
 #!/bin/bash
 # GPU-backed virtual desktop: Xorg :0 -> XFCE -> x11vnc:5900 (localhost) -> noVNC:6080
@@ -148,7 +164,7 @@ nohup dbus-launch --exit-with-session startxfce4 > /tmp/xfce.log 2>&1 &
 sleep 3
 nohup x11vnc -display :0 -forever -shared -noxdamage -rfbport 5900 -localhost -rfbauth \$HOME/.vnc/passwd -o /tmp/x11vnc.log > /dev/null 2>&1 &
 sleep 1
-nohup websockify --web=/usr/share/novnc $WS_TLS_ARGS 0.0.0.0:6080 127.0.0.1:5900 > /tmp/websockify.log 2>&1 &
+nohup websockify --web=$NOVNC_WEB $WS_TLS_ARGS 0.0.0.0:6080 127.0.0.1:5900 > /tmp/websockify.log 2>&1 &
 sleep 1
 echo "--- status ---"; ss -tlnp | grep -E ":5900|:6080"
 DISPLAY=:0 glxinfo 2>/dev/null | grep "OpenGL renderer"
@@ -370,7 +386,7 @@ as_user "grep -q 'export DISPLAY=:0' ~/.bashrc || printf '\n# IsaacLab-Arena wor
 
 # ------------------------------------------------- 10. attendee README
 PUBIP=$(curl -s -m 5 ifconfig.me || hostname -I | awk '{print $1}')
-if [ "$NOVNC_TLS" = "1" ]; then URL="https://$PUBIP:6080/vnc.html?autoconnect=true&resize=scale"; else URL="http://$PUBIP:6080/vnc.html?autoconnect=true&resize=scale  (or the Brev Secure Link for port 6080)"; fi
+if [ "$NOVNC_TLS" = "1" ]; then URL="https://$PUBIP:6080/"; else URL="the Brev Secure Link 'desktop' (or http://$PUBIP:6080/)"; fi
 cat > "$TARGET_HOME/WORKSHOP.md" <<EOF
 # IsaacLab-Arena workshop node
 
