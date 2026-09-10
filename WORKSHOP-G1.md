@@ -140,7 +140,7 @@ This is the documented `launch_finetune.py` recipe: base model `nvidia/GR00T-N1.
 on first run, ~7 GB), Arena's `g1_sim_wbc_data_gr00t_n_1_7_config.py` as the modality config,
 embodiment tag `new_embodiment`, batch 12, action horizon 40, tuning the visual backbone, projector
 and diffusion head with the LLM frozen. The first argument is the number of steps: 1000 for the live
-session (about 15-20 min on this GPU), 20000 for the full recipe from the docs (2-3 h, run it after
+session (about 10 min on this GPU, plus 3 min to write the checkpoint), 20000 for the full recipe from the docs (2-3 h, run it after
 the session or overnight). A checkpoint lands at `.../my_finetune/checkpoint-1000`.
 
 What to watch: the loss printed every few steps should trend down; GPU memory in `nvidia-smi`
@@ -160,8 +160,8 @@ Terminal 3, once it prints Server Ready:
 ~/run_g1_apple_client.sh 5 /models/isaaclab_arena/static_apple_tutorial/my_finetune/checkpoint-1000
 ```
 
-Compare `success_rate` with step 3. After 1000 steps it is normally lower than the pre-trained
-checkpoint; that gap is the point: the released checkpoint was trained for 20000 steps on this
+Compare `success_rate` with step 3. After 1000 steps it is lower than the pre-trained
+checkpoint (a dry run scored 0.4 over 5 episodes, with the apple moved in 4 of 5); that gap is the point: the released checkpoint was trained for 20000 steps on this
 data. For a statistically useful number use more episodes, e.g. `~/run_g1_apple_client.sh 100`.
 
 Parallel evaluation: edit the helper or run the docs command with `--num_envs 5`.
