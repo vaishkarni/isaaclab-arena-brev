@@ -119,11 +119,16 @@ log "xorg.conf written for GPU $BUSID, virtual screen ${W}x${H}"
 
 # --------------------------------------------- 4. VNC password + TLS cert
 install -d -m 700 -o "$TARGET_USER" -g "$TARGET_USER" "$TARGET_HOME/.vnc"
-if [ -z "${VNC_PASSWORD:-}" ]; then
+if [ -n "${VNC_PASSWORD:-}" ]; then
+  as_user "x11vnc -storepasswd '$VNC_PASSWORD' ~/.vnc/passwd >/dev/null 2>&1 && chmod 600 ~/.vnc/passwd"
+elif [ -s "$TARGET_HOME/.vnc/passwd" ]; then
+  VNC_PASSWORD="(unchanged, set at first deploy)"
+  log "No VNC_PASSWORD given; keeping the existing one (rerun)"
+else
   VNC_PASSWORD=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 10)
   log "No VNC_PASSWORD given; generated one (see $TARGET_HOME/WORKSHOP.md)"
+  as_user "x11vnc -storepasswd '$VNC_PASSWORD' ~/.vnc/passwd >/dev/null 2>&1 && chmod 600 ~/.vnc/passwd"
 fi
-as_user "x11vnc -storepasswd '$VNC_PASSWORD' ~/.vnc/passwd >/dev/null 2>&1 && chmod 600 ~/.vnc/passwd"
 WS_TLS_ARGS=""
 if [ "$NOVNC_TLS" = "1" ]; then
   PUBIP=$(curl -s -m 5 ifconfig.me || hostname -I | awk '{print $1}')
