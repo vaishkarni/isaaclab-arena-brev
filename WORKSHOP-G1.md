@@ -35,6 +35,23 @@ If you forgot the token at deploy time:
 cd ~/Isaac-GR00T && uv run --no-sync hf auth login && uv run --no-sync hf download nvidia/Cosmos-Reason2-2B
 ```
 
+## 1b. While your node builds (60-90 min after Deploy)
+
+The desktop is ready about 10 minutes after Deploy; the Arena Docker image and the model downloads
+take the rest. Open the desktop early and follow the build from a terminal:
+
+```bash
+tail -f /var/log/arena-workshop-setup.log        # wait for "=== DONE"; Ctrl-C to leave
+```
+
+Meanwhile the environment code for the code-review lesson is already on your node:
+
+```bash
+less ~/IsaacLab-Arena/isaaclab_arena_environments/galileo_g1_static_pick_and_place_environment.py
+```
+
+Do not start step 2 before DONE: `run_docker.sh` would start its own 45-minute image build.
+
 ## 2. Validate the environment (5 min) — terminal 1
 
 ```bash
