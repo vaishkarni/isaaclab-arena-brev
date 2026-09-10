@@ -301,6 +301,7 @@ if [ -n "$(docker images -q isaaclab_arena:latest 2>/dev/null)" ] && \
   log "Adding pandas to isaaclab_arena:latest (needed by convert_hdf5_to_lerobot.py) ..."
   EP=$(docker inspect -f '{{json .Config.Entrypoint}}' isaaclab_arena:latest)
   CMD=$(docker inspect -f '{{json .Config.Cmd}}' isaaclab_arena:latest)
+  [ "$CMD" = "null" ] && CMD="[]"   # the image has no CMD; entrypoint.sh then drops into a login shell
   docker rm -f arena-pandas-fix >/dev/null 2>&1 || true
   docker run -d --name arena-pandas-fix --entrypoint bash isaaclab_arena:latest -c "sleep 600" >/dev/null \
     && docker exec arena-pandas-fix /isaac-sim/python.sh -m pip install -q pandas >>"$LOG" 2>&1 \
