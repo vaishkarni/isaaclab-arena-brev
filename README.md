@@ -13,7 +13,7 @@ Paste `launchable-setup.sh` as the setup script (VM Mode). It clones this repo a
 ```bash
 #!/bin/bash
 set -euo pipefail
-git clone -q https://github.com/vaishkarni/-isaaclab-arena-brev.git "$HOME/isaaclab-arena-brev"
+git clone -q https://github.com/vaishkarni/isaaclab-arena-brev.git "$HOME/isaaclab-arena-brev"
 sudo -E bash "$HOME/isaaclab-arena-brev/brev-setup.sh"
 ```
 
@@ -25,7 +25,7 @@ Hardware: L40S / RTX PRO 6000 class GPU with RT cores, 128 GiB RAM, 300 GiB disk
 ## Use on an existing VM
 
 ```bash
-git clone https://github.com/vaishkarni/-isaaclab-arena-brev.git && cd isaaclab-arena-brev
+git clone https://github.com/vaishkarni/isaaclab-arena-brev.git && cd isaaclab-arena-brev
 VNC_PASSWORD=changeme sudo -E bash brev-setup.sh
 ```
 
