@@ -79,7 +79,7 @@ log "Installing XFCE / x11vnc / noVNC ..."
 apt-get update -qq >/dev/null
 apt-get install -y -qq --no-install-recommends \
   xfce4 xfce4-terminal x11vnc novnc websockify xterm dbus-x11 xauth \
-  mesa-utils x11-xserver-utils git curl openssl >>"$LOG" 2>&1
+  mesa-utils x11-xserver-utils git git-lfs curl openssl >>"$LOG" 2>&1
 # make sure the NVIDIA X driver matching the kernel driver is present
 DRV_MAJOR=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader | cut -d. -f1)
 dpkg -s "xserver-xorg-video-nvidia-${DRV_MAJOR}" >/dev/null 2>&1 || \
@@ -231,16 +231,28 @@ if [ "${PRESETUP_GROOT:-1}" = "1" ]; then
     as_user "test -x ~/.local/bin/uv" && log "uv installed to ~/.local/bin/uv" || log "WARN: uv install failed"
     as_user "grep -q '.local/bin' ~/.bashrc || echo 'export PATH=\$HOME/.local/bin:\$PATH' >> ~/.bashrc"
   fi
+  groot_sync() {
+    # the repo keeps prebuilt wheels in Git LFS; without git-lfs the clone holds pointer files and
+    # `uv sync` dies with "Invalid zip file structure" on flash_attn-*.whl
+    as_user "git lfs install --skip-repo" >>"$LOG" 2>&1 || true
+    as_user "cd ~/Isaac-GR00T && git lfs pull --include='scripts/deployment/*/wheels/*'" >>"$LOG" 2>&1 \
+      || log "WARN: git lfs pull failed in Isaac-GR00T"
+    as_user "cd ~/Isaac-GR00T && export PATH=\$HOME/.local/bin:\$PATH && uv sync" >"$TARGET_HOME/uv-sync.log" 2>&1 \
+      && log "Isaac-GR00T uv env ready" \
+      || { log "WARN: uv sync failed for Isaac-GR00T, last lines of ~/uv-sync.log:"; tail -n 15 "$TARGET_HOME/uv-sync.log" | tee -a "$LOG"; }
+  }
   if [ ! -d "$TARGET_HOME/Isaac-GR00T/.git" ]; then
     as_user "git clone https://github.com/NVIDIA/Isaac-GR00T.git ~/Isaac-GR00T" >>"$LOG" 2>&1
     as_user "cd ~/Isaac-GR00T && git checkout -q $GROOT_COMMIT" >>"$LOG" 2>&1 \
       && log "Isaac-GR00T at $GROOT_COMMIT" || log "WARN: could not checkout Isaac-GR00T commit $GROOT_COMMIT"
-    as_user "cd ~/Isaac-GR00T && export PATH=\$HOME/.local/bin:\$PATH && uv sync" >"$TARGET_HOME/uv-sync.log" 2>&1 \
-      && log "Isaac-GR00T uv env ready" \
-      || { log "WARN: uv sync failed for Isaac-GR00T, last lines of ~/uv-sync.log:"; tail -n 15 "$TARGET_HOME/uv-sync.log" | tee -a "$LOG"; }
+    groot_sync
+  elif [ ! -x "$TARGET_HOME/Isaac-GR00T/.venv/bin/python" ]; then
+    # checkout exists (earlier run) but the venv never got built: finish the job, do not touch the code
+    log "Isaac-GR00T present without a venv; running lfs pull + uv sync"
+    groot_sync
   else
-    # never touch an existing checkout (dev boxes may have their own work / env in it)
-    log "Isaac-GR00T already present at $(as_user 'cd ~/Isaac-GR00T && git rev-parse --short HEAD'); leaving it unchanged (workflow pin: ${GROOT_COMMIT:0:7}; run 'uv sync' there yourself if needed)"
+    # never touch an existing working checkout (dev boxes may have their own work / env in it)
+    log "Isaac-GR00T already present at $(as_user 'cd ~/Isaac-GR00T && git rev-parse --short HEAD') with venv; leaving it unchanged (workflow pin: ${GROOT_COMMIT:0:7})"
   fi
 fi
 
