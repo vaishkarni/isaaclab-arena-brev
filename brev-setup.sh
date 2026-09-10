@@ -246,7 +246,7 @@ if [ "${PRESETUP_GROOT:-1}" = "1" ]; then
     as_user "cd ~/Isaac-GR00T && git checkout -q $GROOT_COMMIT" >>"$LOG" 2>&1 \
       && log "Isaac-GR00T at $GROOT_COMMIT" || log "WARN: could not checkout Isaac-GR00T commit $GROOT_COMMIT"
     groot_sync
-  elif [ ! -x "$TARGET_HOME/Isaac-GR00T/.venv/bin/python" ]; then
+  elif ! ls -d "$TARGET_HOME"/Isaac-GR00T/.venv/lib/python*/site-packages/torch >/dev/null 2>&1; then
     # checkout exists (earlier run) but the venv never got built: finish the job, do not touch the code
     log "Isaac-GR00T present without a venv; running lfs pull + uv sync"
     groot_sync
