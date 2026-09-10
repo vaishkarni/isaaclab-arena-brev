@@ -35,10 +35,10 @@ If you forgot the token at deploy time:
 hf auth login && hf download nvidia/Cosmos-Reason2-2B
 ```
 
-## 1b. While your node builds (60-90 min after Deploy)
+## 1b. While your node builds (15-90 min after Deploy, depending on the cloud provider)
 
-The desktop is ready about 10 minutes after Deploy; the Arena Docker image and the model downloads
-take the rest. Open the desktop early and follow the build from a terminal:
+The desktop is ready within a minute of the instance running; the CUDA toolkit, the Arena Docker
+image and the model downloads take the rest (measured: 15 minutes end to end on Massed Compute). Open the desktop early and follow the build from a terminal:
 
 ```bash
 tail -f /var/log/arena-workshop-setup.log        # wait for "=== DONE"; Ctrl-C to leave

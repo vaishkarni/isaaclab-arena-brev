@@ -34,7 +34,7 @@ VNC_PASSWORD=changeme sudo -E bash brev-setup.sh
 | File | What |
 |---|---|
 | `launchable-setup.sh` | 8-line bootstrap to paste into the Launchable |
-| `brev-setup.sh` | the real setup: desktop, noVNC, systemd unit, Arena clone + image build, GR00T checkout, G1 workflow staging |
+| `brev-setup.sh` | the real setup (verified end to end on a Brev Massed Compute RTX PRO 6000 node, 15 min to DONE): desktop, noVNC, systemd unit, Arena clone + image build, GR00T checkout, G1 workflow staging |
 | `STEPS-create-launchable.md` | organizer: click-by-click Launchable creation + dry run |
 | `WORKSHOP-G1.md` | participant hands-on sheet: validate, run the pre-trained policy, post-train GR00T N1.7, evaluate (copied to `~/WORKSHOP-G1.md` on the node) |
 | `RUNBOOK-g1-static-apple.md` | organizer: G1 apple-to-plate dataset / finetune / eval runbook |

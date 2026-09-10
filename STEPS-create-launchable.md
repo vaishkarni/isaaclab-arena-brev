@@ -71,7 +71,7 @@ save ~25 GB and 15+ min.
 - View access: "Anyone with the link" for an external workshop.
 - Click **Create Launchable**, copy the share URL.
 
-## 9. Dry run (do this the day before; 60-90 min to Built)
+## 9. Dry run (do this the day before; 15-90 min to Built depending on provider, 15 min measured on Massed Compute)
 1. Open the share URL in a private window -> Deploy Launchable -> enter VNC_PASSWORD -> Deploy.
 2. Wait for Running + Built + setup script finished. Progress: open the instance terminal and
    `tail -f /var/log/arena-workshop-setup.log` (last line is "=== DONE").
