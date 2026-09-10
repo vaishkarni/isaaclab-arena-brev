@@ -354,7 +354,7 @@ if [ "$G1_WORKFLOW" = "1" ]; then
 # GR00T N1.7 policy server (host). Usage: ~/run_gr00t_server.sh [model_dir]
 # Default model: the pre-trained static-apple checkpoint. Pass your finetune dir to serve your own,
 # e.g. ~/run_gr00t_server.sh ~/models/isaaclab_arena/static_apple_tutorial/static_apple_n17_finetune/checkpoint-20000
-export PATH=$HOME/.local/bin:$PATH
+export PATH=$HOME/.local/bin:$PATH PYTHONUNBUFFERED=1
 MODEL=${1:-$HOME/models/isaaclab_arena/static_apple_tutorial/gn1x_tuned_static_apple}
 cd ~/Isaac-GR00T
 exec uv run --no-sync python gr00t/eval/run_gr00t_server.py \
@@ -383,7 +383,7 @@ EOF
 # Post-train GR00T N1.7 on the static apple dataset (host, standalone Isaac-GR00T venv).
 # Usage: ~/run_g1_finetune.sh [max_steps] [output_dir]     e.g. ~/run_g1_finetune.sh 1000 for a live-workshop demo
 # Docs: 20000 steps take ~2-3 h on an RTX 6000 Ada; checkpoints land in <output_dir>/checkpoint-<step>.
-export PATH=$HOME/.local/bin:$PATH
+export PATH=$HOME/.local/bin:$PATH PYTHONUNBUFFERED=1
 STEPS=${1:-20000}
 # save at least once: a 1000-step live run must still leave a checkpoint-1000 to evaluate
 SAVE=$(( STEPS < 5000 ? STEPS : 5000 ))
