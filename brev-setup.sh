@@ -296,9 +296,13 @@ if [ "$G1_WORKFLOW" = "1" ]; then
   # Hugging Face token (token file, same thing `hf auth login` writes)
   if [ -n "${HF_TOKEN:-}" ]; then
     as_user "mkdir -p ~/.cache/huggingface && umask 077 && printf '%s' '$HF_TOKEN' > ~/.cache/huggingface/token"
-    as_user "$HF auth whoami" >>"$LOG" 2>&1 && log "Hugging Face login OK" || log "WARN: HF_TOKEN rejected by huggingface.co"
+  fi
+  HF_LOGGED_IN=0
+  if [ -s "$TARGET_HOME/.cache/huggingface/token" ]; then
+    as_user "$HF auth whoami" >>"$LOG" 2>&1 && { HF_LOGGED_IN=1; log "Hugging Face login OK ($(as_user "$HF auth whoami 2>/dev/null | grep -o 'user: .*'"))"; } \
+      || log "WARN: Hugging Face token rejected by huggingface.co"
   else
-    log "No HF_TOKEN given: the gated backbone nvidia/Cosmos-Reason2-2B cannot be pre-cached; GR00T server/finetune will need 'hf auth login' on the node"
+    log "No HF token: the gated backbone nvidia/Cosmos-Reason2-2B cannot be pre-cached; run 'hf auth login' on the node and rerun"
   fi
 
   # Dataset: 200 recorded demos (HDF5) + the same data pre-converted to LeRobot format
@@ -312,7 +316,7 @@ if [ "$G1_WORKFLOW" = "1" ]; then
   # Pre-trained GR00T N1.7 checkpoint (skip the 16 GB optimizer state and 13 GB ONNX exports)
   if [ "${DOWNLOAD_CHECKPOINT:-1}" = "1" ] && [ ! -f "$CKPT_DIR/model.safetensors.index.json" ]; then
     log "Downloading nvidia/GN1x-Tuned-Arena-G1-Static-PickNPlace to $CKPT_DIR (~13 GB) ..."
-    as_user "$HF download nvidia/GN1x-Tuned-Arena-G1-Static-PickNPlace --repo-type model --local-dir '$CKPT_DIR' --exclude 'optimizer.pt' 'exports/*'" >>"$LOG" 2>&1 \
+    as_user "$HF download nvidia/GN1x-Tuned-Arena-G1-Static-PickNPlace --repo-type model --local-dir '$CKPT_DIR' --exclude 'optimizer.pt' --exclude 'exports/*'" >>"$LOG" 2>&1 \
       && log "checkpoint ready: $CKPT_DIR" || log "WARN: checkpoint download failed"
   fi
 
@@ -325,13 +329,13 @@ if [ "$G1_WORKFLOW" = "1" ]; then
         && log "base model cached" || log "WARN: base model download failed"
     fi
     if [ ! -d "$TARGET_HOME/.cache/huggingface/hub/models--nvidia--Cosmos-Reason2-2B/snapshots" ]; then
-      if [ -n "${HF_TOKEN:-}" ]; then
+      if [ "$HF_LOGGED_IN" = "1" ]; then
         log "Pre-caching nvidia/Cosmos-Reason2-2B (~5 GB, gated) ..."
         as_user "$HF download nvidia/Cosmos-Reason2-2B --repo-type model" >>"$LOG" 2>&1 \
-          && log "backbone cached: participants need no HF login" \
-          || log "WARN: backbone download failed (did the organizer account accept the Cosmos-Reason2-2B license?)"
+          && log "backbone cached: GR00T server/finetune will not need the hub" \
+          || log "WARN: backbone download failed (did this HF account accept the Cosmos-Reason2-2B license?)"
       else
-        log "WARN: backbone nvidia/Cosmos-Reason2-2B NOT cached (no HF_TOKEN)"
+        log "WARN: backbone nvidia/Cosmos-Reason2-2B NOT cached (not logged in to Hugging Face)"
       fi
     fi
   fi
