@@ -83,12 +83,14 @@ GR00T trains on LeRobot-format data. The converter runs inside the Arena contain
 so nothing to edit. From a host terminal (the container from step 2 must be running):
 
 ```bash
-~/run_g1_convert.sh
+~/run_g1_convert.sh          # about 4 minutes for the 251 recorded episodes
 ```
 
-Output: `$DATASET_DIR/arena_g1_static_apple_dataset_recorded/lerobot/` with `data/` (parquet
-states and actions), `videos/` (ego-view MP4) and `meta/` (info.json, modality.json,
-episodes.jsonl). Check it:
+A few `Error loading trajectory demo_N` lines are expected: the released HDF5 contains some
+episodes the converter skips, and NVIDIA's own conversion skipped the same ones. Output:
+`$DATASET_DIR/arena_g1_static_apple_dataset_recorded/lerobot/` with `data/` (parquet states and
+actions), `videos/` (ego-view MP4) and `meta/` (info.json, modality.json, episodes.jsonl), about
+80 MB, 251 episodes and 35k frames at 50 Hz. Check it:
 
 ```bash
 ls $DATASET_DIR/arena_g1_static_apple_dataset_recorded/lerobot/meta
