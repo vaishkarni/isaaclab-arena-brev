@@ -365,6 +365,9 @@ EOF
   log "G1 workflow helpers written: run_gr00t_server.sh, run_g1_apple_client.sh, run_g1_convert.sh, run_g1_finetune.sh"
 fi
 
+# SSH shells have no DISPLAY; run_docker.sh calls xhost and Kit windows must land on the desktop
+as_user "grep -q 'export DISPLAY=:0' ~/.bashrc || printf '\n# IsaacLab-Arena workshop: GUI apps go to the browser desktop\nexport DISPLAY=:0\n' >> ~/.bashrc"
+
 # ------------------------------------------------- 10. attendee README
 PUBIP=$(curl -s -m 5 ifconfig.me || hostname -I | awk '{print $1}')
 if [ "$NOVNC_TLS" = "1" ]; then URL="https://$PUBIP:6080/vnc.html?autoconnect=true&resize=scale"; else URL="http://$PUBIP:6080/vnc.html?autoconnect=true&resize=scale  (or the Brev Secure Link for port 6080)"; fi
