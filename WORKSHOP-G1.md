@@ -32,7 +32,7 @@ in this sheet asks for a login. Check after the build: `ls ~/.cache/huggingface/
 If you forgot the token at deploy time:
 
 ```bash
-cd ~/Isaac-GR00T && uv run --no-sync hf auth login && uv run --no-sync hf download nvidia/Cosmos-Reason2-2B
+hf auth login && hf download nvidia/Cosmos-Reason2-2B
 ```
 
 ## 1b. While your node builds (60-90 min after Deploy)

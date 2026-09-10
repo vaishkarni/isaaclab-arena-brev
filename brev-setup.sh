@@ -235,8 +235,9 @@ if [ "${PRESETUP_GROOT:-1}" = "1" ]; then
     as_user "git clone https://github.com/NVIDIA/Isaac-GR00T.git ~/Isaac-GR00T" >>"$LOG" 2>&1
     as_user "cd ~/Isaac-GR00T && git checkout -q $GROOT_COMMIT" >>"$LOG" 2>&1 \
       && log "Isaac-GR00T at $GROOT_COMMIT" || log "WARN: could not checkout Isaac-GR00T commit $GROOT_COMMIT"
-    as_user "cd ~/Isaac-GR00T && export PATH=\$HOME/.local/bin:\$PATH && uv sync" >>"$LOG" 2>&1 \
-      && log "Isaac-GR00T uv env ready" || log "WARN: uv sync failed for Isaac-GR00T (participants can rerun 'uv sync')"
+    as_user "cd ~/Isaac-GR00T && export PATH=\$HOME/.local/bin:\$PATH && uv sync" >"$TARGET_HOME/uv-sync.log" 2>&1 \
+      && log "Isaac-GR00T uv env ready" \
+      || { log "WARN: uv sync failed for Isaac-GR00T, last lines of ~/uv-sync.log:"; tail -n 15 "$TARGET_HOME/uv-sync.log" | tee -a "$LOG"; }
   else
     # never touch an existing checkout (dev boxes may have their own work / env in it)
     log "Isaac-GR00T already present at $(as_user 'cd ~/Isaac-GR00T && git rev-parse --short HEAD'); leaving it unchanged (workflow pin: ${GROOT_COMMIT:0:7}; run 'uv sync' there yourself if needed)"
@@ -267,7 +268,13 @@ if [ "$G1_WORKFLOW" = "1" ]; then
   MD_DIR="$TARGET_HOME/models/isaaclab_arena/static_apple_tutorial"
   CKPT_DIR="$MD_DIR/gn1x_tuned_static_apple"
   as_user "mkdir -p '$DS_DIR' '$MD_DIR'"
-  HF="cd ~/Isaac-GR00T && export PATH=\$HOME/.local/bin:\$PATH && uv run --no-sync hf"
+  # standalone `hf` CLI (uv tool), so downloads do not depend on the Isaac-GR00T venv
+  if ! as_user "test -x ~/.local/bin/hf"; then
+    as_user "export PATH=\$HOME/.local/bin:\$PATH && uv tool install -q 'huggingface_hub[cli]'" >>"$LOG" 2>&1 \
+      || as_user "python3 -m pip install -q --user 'huggingface_hub[cli]'" >>"$LOG" 2>&1 || true
+  fi
+  as_user "test -x ~/.local/bin/hf" && log "hf CLI: $(as_user '~/.local/bin/hf version 2>/dev/null | head -1')" || log "WARN: hf CLI not installed; downloads will fail"
+  HF="export PATH=\$HOME/.local/bin:\$PATH && hf"
 
   # Hugging Face token (token file, same thing `hf auth login` writes)
   if [ -n "${HF_TOKEN:-}" ]; then
@@ -411,7 +418,7 @@ Headless test: python -m pytest isaaclab_arena/tests/test_g1_static_pick_and_pla
 Hugging Face: the HF_TOKEN you entered at deploy time is already logged in on this node and the
 gated backbone nvidia/Cosmos-Reason2-2B is cached (check: ls ~/.cache/huggingface/hub). If you
 deployed without a token: accept https://huggingface.co/nvidia/Cosmos-Reason2-2B, then
-    cd ~/Isaac-GR00T && uv run --no-sync hf auth login && uv run --no-sync hf download nvidia/Cosmos-Reason2-2B
+    hf auth login && hf download nvidia/Cosmos-Reason2-2B
 
     ~/run_gr00t_server.sh                      # host, terminal 2: serves the pre-trained checkpoint, wait for "Server Ready"
     ~/run_g1_apple_client.sh 5                 # host, terminal 3: G1 does the task in the Isaac Lab window, prints success_rate
