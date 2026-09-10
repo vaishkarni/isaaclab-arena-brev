@@ -14,21 +14,12 @@ password from the organizer. You get a Linux desktop. Open a terminal: Applicati
 Every command below runs in a terminal on this desktop unless it says otherwise. You will use
 three terminals; open them as tabs.
 
-## 1. One-time Hugging Face login (3 min)
+## 1. Nothing to log in to
 
-GR00T N1.7 loads the gated backbone `nvidia/Cosmos-Reason2-2B`, so training and serving both need
-a Hugging Face account that accepted its license.
-
-1. On your own laptop: https://huggingface.co/nvidia/Cosmos-Reason2-2B -> accept the license.
-2. https://huggingface.co/settings/tokens -> create a read token, copy it.
-3. On the desktop terminal:
-
-```bash
-cd ~/Isaac-GR00T && uv run --no-sync hf auth login      # paste the token, answer n to git credential
-uv run --no-sync hf auth whoami                          # prints your username
-```
-
-Skip this if the organizer deployed the node with an HF_TOKEN; `whoami` tells you.
+Everything the workflow downloads from Hugging Face is already on your node: the dataset and the
+tuned checkpoint (public), the GR00T-N1.7-3B base model (public) and the Cosmos-Reason2-2B backbone
+(gated; the organizer cached it at build time). You do not need a Hugging Face account or token.
+Check with `ls ~/.cache/huggingface/hub` (two `models--nvidia--...` folders).
 
 ## 2. Validate the environment (5 min) — terminal 1
 
@@ -142,7 +133,7 @@ Each helper is a few lines; `cat` it to see the exact docs command it runs.
 
 | Symptom | Fix |
 |---|---|
-| `401` / gated repo error from the server or finetune | Step 1 not done: accept the Cosmos-Reason2-2B license and `hf auth login`. |
+| `401` / gated repo error from the server or finetune | The backbone cache is missing (`ls ~/.cache/huggingface/hub`). Ask the organizer; as a stopgap `export HF_HUB_OFFLINE=1` before the helper if the folder exists. |
 | `Invalid action shape, expected: 23, received: 50` | Client embodiment must be `g1_wbc_agile_joint` (the helper already does this). |
 | `Action key 'left_arm''s horizon must be 40` | Server modality config and checkpoint disagree; use the same `--modality-config-path` for training and serving (the helpers do). |
 | No Isaac Lab window | Inside the container `echo $DISPLAY` must print `:0`. Start the container from a desktop terminal, not from SSH. |

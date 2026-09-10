@@ -23,11 +23,16 @@
 #   TARGET_USER     login user that owns the desktop    [auto: ubuntu/shadeform/first /home]
 #   G1_WORKFLOW     1 = stage the Unitree G1 static apple-to-plate workflow (dataset,
 #                   pre-trained checkpoint, GR00T N1.7 server/finetune helpers)  [1]
-#   HF_TOKEN        Hugging Face token (mark as secret in Brev). Needed because every GR00T N1.7
-#                   checkpoint loads the gated backbone nvidia/Cosmos-Reason2-2B; the user must
-#                   also have accepted that repo's license on huggingface.co.  [empty = skip login]
+#   HF_TOKEN        ORGANIZER's Hugging Face token (mark as secret in Brev). Used only at build time
+#                   to pre-cache the gated backbone nvidia/Cosmos-Reason2-2B that every GR00T N1.7
+#                   model loads; the token file is deleted afterwards so participants never log in.
+#                   The organizer account must have accepted that repo's license (auto-approved).
+#                   Dataset, tuned checkpoint and base model are public.  [empty = skip backbone]
 #   DOWNLOAD_DATASET     1 = fetch nvidia/Arena-G1-Static-PickNPlace-Task (~10 GB, incl. LeRobot) [1]
 #   DOWNLOAD_CHECKPOINT  1 = fetch nvidia/GN1x-Tuned-Arena-G1-Static-PickNPlace (~13 GB, weights only) [1]
+#   PRECACHE_MODELS      1 = pre-cache nvidia/GR00T-N1.7-3B (~7 GB, public) and, with HF_TOKEN,
+#                        nvidia/Cosmos-Reason2-2B (~5 GB, gated) in ~/.cache/huggingface  [1]
+#   KEEP_HF_TOKEN        1 = leave the token file on the node (default 0 = delete after caching) [0]
 # =============================================================================
 set -euo pipefail
 
@@ -247,12 +252,12 @@ if [ "$G1_WORKFLOW" = "1" ]; then
   as_user "mkdir -p '$DS_DIR' '$MD_DIR'"
   HF="cd ~/Isaac-GR00T && export PATH=\$HOME/.local/bin:\$PATH && uv run --no-sync hf"
 
-  # Hugging Face login (token file, same thing `hf auth login` writes)
+  # Organizer's Hugging Face token (token file, same thing `hf auth login` writes); removed again below
   if [ -n "${HF_TOKEN:-}" ]; then
     as_user "mkdir -p ~/.cache/huggingface && umask 077 && printf '%s' '$HF_TOKEN' > ~/.cache/huggingface/token"
-    as_user "$HF auth whoami" >>"$LOG" 2>&1 && log "Hugging Face login OK" || log "WARN: HF_TOKEN rejected by huggingface.co"
+    as_user "$HF auth whoami" >>"$LOG" 2>&1 && log "Hugging Face login OK (build-time only)" || log "WARN: HF_TOKEN rejected by huggingface.co"
   else
-    log "No HF_TOKEN given: GR00T server/finetune will fail until the user runs 'uv run --no-sync hf auth login' in ~/Isaac-GR00T"
+    log "No HF_TOKEN given: the gated backbone nvidia/Cosmos-Reason2-2B cannot be pre-cached; GR00T server/finetune will need 'hf auth login' on the node"
   fi
 
   # Dataset: 200 recorded demos (HDF5) + the same data pre-converted to LeRobot format
@@ -268,6 +273,30 @@ if [ "$G1_WORKFLOW" = "1" ]; then
     log "Downloading nvidia/GN1x-Tuned-Arena-G1-Static-PickNPlace to $CKPT_DIR (~13 GB) ..."
     as_user "$HF download nvidia/GN1x-Tuned-Arena-G1-Static-PickNPlace --repo-type model --local-dir '$CKPT_DIR' --exclude 'optimizer.pt' 'exports/*'" >>"$LOG" 2>&1 \
       && log "checkpoint ready: $CKPT_DIR" || log "WARN: checkpoint download failed"
+  fi
+
+  # Pre-cache the models GR00T loads from the hub at runtime, so nobody needs a token later.
+  # transformers/huggingface_hub fall back to the cached snapshot when the hub HEAD request fails (401 without token).
+  if [ "${PRECACHE_MODELS:-1}" = "1" ]; then
+    if [ ! -d "$TARGET_HOME/.cache/huggingface/hub/models--nvidia--GR00T-N1.7-3B/snapshots" ]; then
+      log "Pre-caching nvidia/GR00T-N1.7-3B (~7 GB, public) ..."
+      as_user "$HF download nvidia/GR00T-N1.7-3B --repo-type model" >>"$LOG" 2>&1 \
+        && log "base model cached" || log "WARN: base model download failed"
+    fi
+    if [ ! -d "$TARGET_HOME/.cache/huggingface/hub/models--nvidia--Cosmos-Reason2-2B/snapshots" ]; then
+      if [ -n "${HF_TOKEN:-}" ]; then
+        log "Pre-caching nvidia/Cosmos-Reason2-2B (~5 GB, gated) ..."
+        as_user "$HF download nvidia/Cosmos-Reason2-2B --repo-type model" >>"$LOG" 2>&1 \
+          && log "backbone cached: participants need no HF login" \
+          || log "WARN: backbone download failed (did the organizer account accept the Cosmos-Reason2-2B license?)"
+      else
+        log "WARN: backbone nvidia/Cosmos-Reason2-2B NOT cached (no HF_TOKEN)"
+      fi
+    fi
+  fi
+  # Do not leave the organizer's token on a node participants have root on
+  if [ -n "${HF_TOKEN:-}" ] && [ "${KEEP_HF_TOKEN:-0}" != "1" ]; then
+    as_user "rm -f ~/.cache/huggingface/token ~/.huggingface/token" && log "HF token file removed"
   fi
 
   # Point Arena's client config at the served checkpoint (container path; ~/models is mounted at /models)
@@ -359,8 +388,7 @@ Headless test: python -m pytest isaaclab_arena/tests/test_g1_static_pick_and_pla
 
 ## Unitree G1 apple-to-plate: GR00T N1.7 training + evaluation (see WORKSHOP-G1.md)
 
-Prereq once per person: accept the license at https://huggingface.co/nvidia/Cosmos-Reason2-2B, then
-    cd ~/Isaac-GR00T && uv run --no-sync hf auth login
+No Hugging Face login needed: dataset, checkpoint, base model and the gated backbone are already cached on this node.
 
     ~/run_gr00t_server.sh                      # host, terminal 2: serves the pre-trained checkpoint, wait for "Server Ready"
     ~/run_g1_apple_client.sh 5                 # host, terminal 3: G1 does the task in the Isaac Lab window, prints success_rate
