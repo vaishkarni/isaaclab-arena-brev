@@ -413,7 +413,8 @@ EOF
 # Writes /datasets/isaaclab_arena/static_apple_tutorial/arena_g1_static_apple_dataset_recorded/lerobot  (what run_g1_finetune.sh trains on)
 # Requires the Arena container to be running (./docker/run_docker.sh in another terminal).
 # Fallback if you are short on time: ln -s ../lerobot ~/datasets/isaaclab_arena/static_apple_tutorial/arena_g1_static_apple_dataset_recorded/lerobot
-docker exec -it isaaclab_arena-latest bash -c "cd /workspaces/isaaclab_arena && /isaac-sim/python.sh isaaclab_arena_gr00t/lerobot/convert_hdf5_to_lerobot.py --yaml_file isaaclab_arena_gr00t/lerobot/config/g1_static_apple_config.yaml"
+# Runs as YOUR user inside the container (not root) so the output stays writable for the finetune on the host.
+docker exec -it -u "$(id -u):$(id -g)" -e HOME=/home/$(id -un) isaaclab_arena-latest bash -c "cd /workspaces/isaaclab_arena && /isaac-sim/python.sh isaaclab_arena_gr00t/lerobot/convert_hdf5_to_lerobot.py --yaml_file isaaclab_arena_gr00t/lerobot/config/g1_static_apple_config.yaml"
 EOF
   cat > "$TARGET_HOME/run_g1_finetune.sh" <<'EOF'
 #!/bin/bash
