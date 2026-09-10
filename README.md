@@ -37,6 +37,7 @@ VNC_PASSWORD=changeme sudo -E bash brev-setup.sh
 | `brev-setup.sh` | the real setup (verified end to end on a Brev Massed Compute RTX PRO 6000 node, 15 min to DONE): desktop, noVNC, systemd unit, Arena clone + image build, GR00T checkout, G1 workflow staging |
 | `STEPS-create-launchable.md` | organizer: click-by-click Launchable creation + dry run |
 | `WORKSHOP-G1.md` | participant hands-on sheet: validate, run the pre-trained policy, post-train GR00T N1.7, evaluate (copied to `~/WORKSHOP-G1.md` on the node) |
+| `validate-pipeline.sh` | organizer self-test: pytest, conversion, 1000-step finetune, serve + sim eval, unattended (~18 min on RTX PRO 6000) |
 | `RUNBOOK-g1-static-apple.md` | organizer: G1 apple-to-plate dataset / finetune / eval runbook |
 | `isaaclab_arena_workshop.ipynb` | participant notebook |
 | `docs/`, `*.pdf` | organizer and participant guides |

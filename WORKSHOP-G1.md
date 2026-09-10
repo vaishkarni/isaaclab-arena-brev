@@ -161,7 +161,7 @@ Terminal 3, once it prints Server Ready:
 ```
 
 Compare `success_rate` with step 3. After 1000 steps it is lower than the pre-trained
-checkpoint (a dry run scored 0.4 over 5 episodes, with the apple moved in 4 of 5); that gap is the point: the released checkpoint was trained for 20000 steps on this
+checkpoint (dry runs: pre-trained 1.0 and 0.67 over 2-3 episodes; 1000-step checkpoint 0.4 over 5); that gap is the point: the released checkpoint was trained for 20000 steps on this
 data. For a statistically useful number use more episodes, e.g. `~/run_g1_apple_client.sh 100`.
 
 Parallel evaluation: edit the helper or run the docs command with `--num_envs 5`.
