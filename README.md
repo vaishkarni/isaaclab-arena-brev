@@ -44,6 +44,10 @@ VNC_PASSWORD=changeme sudo -E bash brev-setup.sh
 
 ## Quick GUI check on a built node
 
+One-command G1 apple pick-and-place demo (host terminal): `~/demo_apple.sh 3` — starts the Arena
+container, the GR00T N1.7 server (port 5557) and the Isaac Sim client with the Kit GUI on the
+browser desktop. `~/demo_apple.sh stop` tears it down. Source: [`demo_apple.sh`](demo_apple.sh).
+
 Inside the browser desktop, open a terminal:
 
 ```bash

@@ -102,6 +102,21 @@ Short on time? NVIDIA's own conversion of the same demos ships with the dataset 
 
 ## 3. Watch the pre-trained policy (10 min) — terminals 2 and 3
 
+**Quick path, one command (host terminal, not inside the container):**
+
+```bash
+~/demo_apple.sh 5
+```
+
+This starts the Arena container (if it is not running), the GR00T N1.7 policy server on
+port 5557, waits for it, and launches the Isaac Sim client with the Kit window on your
+browser desktop for 5 episodes. First run takes about 5 minutes (server load + shaders);
+the final line prints `Metrics: {'success_rate': ..., 'object_moved_rate': ..., 'num_episodes': 5}`.
+Server and container stay up for the next run; `~/demo_apple.sh stop` shuts them down.
+Logs: `~/gr00t_server.log`, `/tmp/demo_client.log`.
+
+**Manual path (what the command does, two terminals):**
+
 Terminal 2 (host, not in the container):
 
 ```bash
@@ -147,6 +162,9 @@ What to watch: the loss printed every few steps should trend down; GPU memory in
 sits around 40-50 GB.
 
 ## 5. Evaluate your checkpoint (10 min) — terminals 2 and 3
+
+One command: `~/demo_apple.sh stop && ~/demo_apple.sh 5 /models/isaaclab_arena/static_apple_tutorial/static_apple_n17_finetune/checkpoint-1000`
+(the second argument is your checkpoint as seen inside the container; `~/models` is mounted at `/models`). Manual path:
 
 Terminal 2:
 
