@@ -462,7 +462,7 @@ VNC password: $VNC_PASSWORD
 Inside the desktop, open a terminal and run:
 
     cd ~/IsaacLab-Arena
-    ./docker/run_docker.sh          # drops you into the Arena container (GUI-enabled)
+    export DISPLAY=:0 && ./docker/run_docker.sh   # drops you into the Arena container (GUI-enabled)
 
 Then, inside the container (runner options before the environment name, environment options after):
 

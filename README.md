@@ -47,7 +47,7 @@ VNC_PASSWORD=changeme sudo -E bash brev-setup.sh
 Inside the browser desktop, open a terminal:
 
 ```bash
-cd ~/IsaacLab-Arena && ./docker/run_docker.sh
+cd ~/IsaacLab-Arena && export DISPLAY=:0 && ./docker/run_docker.sh
 python -m pytest isaaclab_arena/tests/test_g1_static_pick_and_place.py -v      # headless, "2 passed"
 python isaaclab_arena/evaluation/policy_runner.py --policy_type zero_action --viz kit --num_steps 3000 \
   pick_and_place_maple_table --embodiment droid_rel_joint_pos --hdr home_office_robolab   # window opens on the desktop

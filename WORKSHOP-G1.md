@@ -55,7 +55,7 @@ Do not start step 2 before DONE: `run_docker.sh` would start its own 45-minute i
 ## 2. Validate the environment (5 min) — terminal 1
 
 ```bash
-cd ~/IsaacLab-Arena && ./docker/run_docker.sh
+cd ~/IsaacLab-Arena && export DISPLAY=:0 && ./docker/run_docker.sh
 ```
 
 You are now inside the Arena container (prompt changes). Run the headless test from the docs:
