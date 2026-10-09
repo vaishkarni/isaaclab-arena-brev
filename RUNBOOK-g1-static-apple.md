@@ -44,7 +44,7 @@ Keep this container shell open; the helpers `docker exec` into it.
 ### 2. See the pre-trained policy do the task in the GUI (10 min) - step 4 of the workflow
 Second terminal on the host:
 ```
-~/run_gr00t_server.sh            # loads 12 GB of weights, prints "Server Ready and listening on 0.0.0.0:5555"
+~/run_gr00t_server.sh            # loads 12 GB of weights, prints "Server Ready and listening on 0.0.0.0:5557"
 ```
 Third terminal on the host:
 ```

@@ -14,8 +14,8 @@ grep -a -E "Training completed|Traceback|Error" /tmp/finetune.out | tail -1; ls 
 say "STEP 5 serve + eval own checkpoint"
 $HOME/run_gr00t_server.sh $HOME/models/isaaclab_arena/static_apple_tutorial/my_finetune/checkpoint-1000 > /tmp/server.out 2>&1 &
 SRV=$!
-for i in $(seq 1 90); do ss -tln | grep -q ":5555" && break; sleep 3; done
-ss -tln | grep -q ":5555" && say "server listening" || { say "SERVER FAILED"; tail -5 /tmp/server.out; }
+for i in $(seq 1 90); do ss -tln | grep -q ":5557" && break; sleep 3; done
+ss -tln | grep -q ":5557" && say "server listening" || { say "SERVER FAILED"; tail -5 /tmp/server.out; }
 script -qfc "$HOME/run_g1_apple_client.sh 5 /models/isaaclab_arena/static_apple_tutorial/my_finetune/checkpoint-1000" /dev/null > /tmp/client.out 2>&1
 grep -a -o -E "Metrics: \{[^}]*\}" /tmp/client.out | tail -1
 kill $SRV 2>/dev/null; sleep 2; pkill -f run_gr00t_server.py 2>/dev/null

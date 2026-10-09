@@ -110,7 +110,7 @@ Terminal 2 (host, not in the container):
 
 This starts `gr00t/eval/run_gr00t_server.py` on the checkpoint
 `nvidia/GN1x-Tuned-Arena-G1-Static-PickNPlace`. Wait for
-`Server Ready and listening on 0.0.0.0:5555` (about 2 min, loads 12 GB of weights).
+`Server Ready and listening on 0.0.0.0:5557` (about 2 min, loads 12 GB of weights).
 
 Terminal 3 (host):
 
